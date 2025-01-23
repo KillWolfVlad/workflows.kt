@@ -1,9 +1,8 @@
 package ru.killwolfvlad.workflows.activities
 
 import kotlinx.coroutines.withContext
-import ru.killwolfvlad.workflows.ActivityContext
+import ru.killwolfvlad.workflows.activities.coroutines.ActivityCoroutineContextElement
 import ru.killwolfvlad.workflows.activities.enums.ActivityStatus
-import ru.killwolfvlad.workflows.coroutines.ActivityCoroutineContextElement
 
 const val STATUS_ACTIVITY_CONTEXT_KEY = "status"
 

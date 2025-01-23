@@ -2,7 +2,7 @@ package ru.killwolfvlad.workflows.redis
 
 object RedisScripts {
     /**
-     * Script implementation for [ru.killwolfvlad.workflows.interfaces.KeyValueClient.hSetIfKeyExists]
+     * Script implementation for [ru.killwolfvlad.workflows.core.interfaces.KeyValueClient.hSetIfKeyExists]
      */
     val hSetIfKeyExistsScript =
         """
@@ -21,7 +21,7 @@ object RedisScripts {
         """.trimIndent()
 
     /**
-     * Script implementation for [ru.killwolfvlad.workflows.interfaces.KeyValueClient.acquireLock]
+     * Script implementation for [ru.killwolfvlad.workflows.core.interfaces.KeyValueClient.acquireLock]
      */
     val acquireLockScript =
         """
@@ -65,7 +65,7 @@ object RedisScripts {
         """.trimIndent()
 
     /**
-     * Script implementation for [ru.killwolfvlad.workflows.interfaces.KeyValueClient.heartbeat]
+     * Script implementation for [ru.killwolfvlad.workflows.core.interfaces.KeyValueClient.heartbeat]
      */
     val heartbeatScript =
         """
@@ -80,7 +80,7 @@ object RedisScripts {
         """.trimIndent()
 
     /**
-     * Script implementation for [ru.killwolfvlad.workflows.interfaces.KeyValueClient.deleteWorkflow]
+     * Script implementation for [ru.killwolfvlad.workflows.core.interfaces.KeyValueClient.deleteWorkflow]
      */
     val deleteWorkflowScript =
         """

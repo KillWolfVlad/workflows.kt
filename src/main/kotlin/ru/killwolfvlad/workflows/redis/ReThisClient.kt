@@ -5,9 +5,9 @@ import eu.vendeli.rethis.commands.*
 import eu.vendeli.rethis.types.core.Int64
 import eu.vendeli.rethis.types.core.RType
 import io.ktor.util.collections.*
-import ru.killwolfvlad.workflows.interfaces.KeyValueClient
-import ru.killwolfvlad.workflows.types.WorkflowId
-import ru.killwolfvlad.workflows.workflowContextFieldKey
+import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
+import ru.killwolfvlad.workflows.core.types.WorkflowId
+import ru.killwolfvlad.workflows.core.workflowContextFieldKey
 import kotlin.time.Duration
 
 class ReThisClient(

@@ -1,5 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.1.0"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.plugin.serialization)
 }
 
 group = "ru.killwolfvlad"
@@ -10,12 +11,20 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.bundles.ktor)
+
+    implementation(libs.bundles.kotlinx)
+
+    compileOnly(libs.bundles.redis)
+    testImplementation(libs.bundles.redis)
+
     testImplementation(kotlin("test"))
 }
 
 tasks.test {
     useJUnitPlatform()
 }
+
 kotlin {
     jvmToolchain(21)
 }

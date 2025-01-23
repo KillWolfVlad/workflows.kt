@@ -1,0 +1,42 @@
+[versions]
+kotlin = "2.1.0" # https://github.com/JetBrains/kotlin
+ktor = "3.0.3" # https://github.com/ktorio/ktor
+kotlinx-coroutines = "1.10.1" # https://github.com/Kotlin/kotlinx.coroutines
+kotlinx-datetime = "0.6.1" # https://github.com/Kotlin/kotlinx-datetime
+kotlinx-serialization = "1.8.0" # https://github.com/Kotlin/kotlinx.serialization
+rethis = "0.2.4" # https://github.com/vendelieu/re.this
+lettuce = "6.5.2.RELEASE" # https://github.com/redis/lettuce
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+[libraries]
+# ktor
+ktor-utils = { module = "io.ktor:ktor-utils", version.ref = "ktor" }
+
+# kotlinx
+kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
+# redis
+rethis = { module = "eu.vendeli:re.this", version.ref = "rethis" }
+lettuce = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
+
+[bundles]
+
+ktor = [
+    "ktor-utils"
+]
+
+kotlinx = [
+    "kotlinx-coroutines",
+    "kotlinx-datetime",
+    "kotlinx-serialization-json"
+]
+
+redis = [
+    "rethis",
+    "lettuce"
+]

@@ -13,9 +13,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.toSet
 import kotlinx.coroutines.runBlocking
-import ru.killwolfvlad.workflows.interfaces.KeyValueClient
-import ru.killwolfvlad.workflows.types.WorkflowId
-import ru.killwolfvlad.workflows.workflowContextFieldKey
+import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
+import ru.killwolfvlad.workflows.core.types.WorkflowId
+import ru.killwolfvlad.workflows.core.workflowContextFieldKey
 import kotlin.time.Duration
 
 class LettuceClient : KeyValueClient {

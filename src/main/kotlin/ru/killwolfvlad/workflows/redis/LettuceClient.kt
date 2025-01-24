@@ -11,12 +11,8 @@ import io.lettuce.core.api.coroutines.RedisCoroutinesCommands
 import io.lettuce.core.pubsub.RedisPubSubAdapter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.flow.toSet
 import kotlinx.coroutines.runBlocking
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
-import ru.killwolfvlad.workflows.core.types.WorkflowId
-import ru.killwolfvlad.workflows.core.workflowContextFieldKey
-import kotlin.time.Duration
 
 class LettuceClient : KeyValueClient {
     private val redis = RedisClient.create("redis://localhost:6379")
@@ -39,13 +35,6 @@ class LettuceClient : KeyValueClient {
     override suspend fun hDel(key: String, vararg fields: String) {
         client.hdel(key, *fields)
     }
-
-    //endregion
-
-    //region SET
-
-    override suspend fun sMembers(key: String): Set<String> =
-        client.smembers(key).toSet()
 
     //endregion
 
@@ -84,98 +73,29 @@ class LettuceClient : KeyValueClient {
         return result
     }
 
-    //endregion
+    override suspend fun pipelineHGetAll(vararg keys: String): List<Map<String, String>> {
+        // TODO: use pipeline here!
 
-    // region SCRIPTS
+        val result = mutableListOf<Map<String, String>>()
 
-    override suspend fun hSetIfKeyExists(
-        key: String,
-        vararg fieldValues: Pair<String, String>,
-    ) {
-        client.fastEval<String, String, String>(
-            "hSetIfKeyExists",
-            RedisScripts.hSetIfKeyExistsScript,
-            ScriptOutputType.STATUS,
-            listOf(key),
-            (fieldValues.size * 2).toString(), // ARGV[1]
-            *fieldValues.flatMap { listOf(it.first, it.second) }.toTypedArray()
-        )
-    }
-
-    override suspend fun acquireLock(
-        // keys
-        workflowKey: String,
-        workflowIdsKey: String,
-        // arguments
-        workflowId: WorkflowId,
-        lockTimeout: Duration,
-        // workflow context
-        workflowLockFieldKey: String,
-        workerId: String,
-        workflowClassNameFieldKey: String,
-        workflowClassName: String,
-        initialContext: Map<String, String>,
-    ): Boolean {
-        val result = client.fastEval<String, String, Long>(
-            "acquireLock",
-            RedisScripts.acquireLockScript,
-            ScriptOutputType.INTEGER,
-            listOf(
-                workflowKey,
-                workflowIdsKey,
-            ),
-            // arguments
-            workflowId.value, // ARGV[1]
-            lockTimeout.inWholeMilliseconds.toString(), // ARGV[2]
-            ((initialContext.size + 2) * 2).toString(), // ARGV[3]
-            // workflow context
-            workflowLockFieldKey, // ARGV[4]
-            workerId, // ARGV[5]
-            workflowClassNameFieldKey,
-            workflowClassName,
-            *initialContext.flatMap { listOf(it.key.workflowContextFieldKey, it.value) }.toTypedArray()
-        )
-
-        return result != null && result >= 1L
-    }
-
-    override suspend fun heartbeat(
-        workflowKey: String,
-        lockTimeout: Duration,
-        workflowLockFieldKey: String,
-        workflowSignalFieldKey: String,
-    ): String? {
-        val result = client.fastEval<String, String, String>(
-            "heartbeat",
-            RedisScripts.heartbeatScript,
-            ScriptOutputType.VALUE,
-            listOf(workflowKey),
-            // arguments
-            lockTimeout.inWholeMilliseconds.toString(), // ARGV[1]
-            workflowLockFieldKey, // ARGV[2]
-            workflowSignalFieldKey, // ARGV[3]
-        )
+        keys.forEach {
+            result.add(client.hgetall(it).toList().associate { it.key to it.value })
+        }
 
         return result
     }
 
-    override suspend fun deleteWorkflow(
-        workflowKey: String,
-        workflowIdsKey: String,
-        workflowId: WorkflowId,
-    ) {
-        client.fastEval<String, String, String>(
-            "deleteWorkflow",
-            RedisScripts.deleteWorkflowScript,
-            ScriptOutputType.STATUS,
-            listOf(
-                workflowKey,
-                workflowIdsKey,
-            ),
-            // arguments
-            workflowId.value,
-        )
-    }
+    //endregion
+
+    // region SCRIPTS
+
+    override suspend fun <T> eval(
+        scriptId: String,
+        script: String,
+        keys: List<String>,
+        vararg args: String,
+    ): T =
+        client.fastEval<String, String, Any>(scriptId, script, ScriptOutputType.STATUS, keys, *args) as T
 
     // endregion
 }

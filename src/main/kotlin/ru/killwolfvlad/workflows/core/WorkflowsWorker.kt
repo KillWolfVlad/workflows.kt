@@ -1,12 +1,14 @@
 package ru.killwolfvlad.workflows.core
 
+import kotlinx.coroutines.Job
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.interfaces.Workflow
 import ru.killwolfvlad.workflows.core.interfaces.WorkflowsClassManager
 import ru.killwolfvlad.workflows.core.interfaces.WorkflowsExceptionHandler
-import ru.killwolfvlad.workflows.core.internal.WorkflowSignalsBroker
 import ru.killwolfvlad.workflows.core.internal.WorkflowsRunner
 import ru.killwolfvlad.workflows.core.internal.WorkflowsScheduler
+import ru.killwolfvlad.workflows.core.internal.WorkflowsSignalsBroker
+import ru.killwolfvlad.workflows.core.internal.WorkflowsWorkerHeartbeat
 import ru.killwolfvlad.workflows.core.types.WorkflowId
 import kotlin.reflect.KClass
 
@@ -16,13 +18,19 @@ class WorkflowsWorker(
     workflowsClassManager: WorkflowsClassManager,
     workflowsExceptionHandler: WorkflowsExceptionHandler,
 ) {
-    private val workflowsRunner =
-        WorkflowsRunner(config, keyValueClient, workflowsClassManager, workflowsExceptionHandler)
+    private val mainJob = Job()
 
-    private val workflowSignalsBroker = WorkflowSignalsBroker(keyValueClient, workflowsRunner)
+    private val workflowsRunner =
+        WorkflowsRunner(mainJob, config, keyValueClient, workflowsClassManager, workflowsExceptionHandler)
+
+    private val workflowsWorkerHeartbeat =
+        WorkflowsWorkerHeartbeat(mainJob, config, keyValueClient, workflowsExceptionHandler)
+
+    private val workflowsSignalsBroker =
+        WorkflowsSignalsBroker(keyValueClient, workflowsExceptionHandler, workflowsRunner)
 
     private val workflowsScheduler =
-        WorkflowsScheduler(config, keyValueClient, workflowsExceptionHandler, workflowsRunner)
+        WorkflowsScheduler(mainJob, config, keyValueClient, workflowsExceptionHandler, workflowsRunner)
 
     suspend fun run(
         workflowId: WorkflowId,
@@ -31,10 +39,11 @@ class WorkflowsWorker(
     ) = workflowsRunner.run(workflowId, initialContext, workflowClass)
 
     suspend fun cancel(workflowId: WorkflowId) =
-        workflowSignalsBroker.cancel(workflowId)
+        workflowsSignalsBroker.cancel(workflowId)
 
     suspend fun init() {
-        workflowSignalsBroker.init()
+        workflowsWorkerHeartbeat.init()
+        workflowsSignalsBroker.init()
         workflowsScheduler.init()
     }
 }

@@ -6,6 +6,8 @@ kotlinx-datetime = "0.6.1" # https://github.com/Kotlin/kotlinx-datetime
 kotlinx-serialization = "1.8.0" # https://github.com/Kotlin/kotlinx.serialization
 rethis = "0.2.4" # https://github.com/vendelieu/re.this
 lettuce = "6.5.2.RELEASE" # https://github.com/redis/lettuce
+kotest = "6.0.0.M1" # https://github.com/kotest/kotest
+logback = "1.5.16" # https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -24,6 +26,13 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 rethis = { module = "eu.vendeli:re.this", version.ref = "rethis" }
 lettuce = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 
+# kotest
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+
+# logback
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+
 [bundles]
 
 ktor = [
@@ -39,4 +48,13 @@ kotlinx = [
 redis = [
     "rethis",
     "lettuce"
+]
+
+kotest = [
+    "kotest-runner-junit5",
+    "kotest-assertions-core",
+]
+
+logback = [
+    "logback-classic"
 ]

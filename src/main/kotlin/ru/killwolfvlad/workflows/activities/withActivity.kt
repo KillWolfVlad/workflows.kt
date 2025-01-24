@@ -11,6 +11,7 @@ suspend fun withActivity(
     activityId: String,
     block: suspend () -> Map<String, String>?,
 ) = withContext(ActivityCoroutineContextElement(activityId)) activity@{
+    // TODO: check for cancel
     val status = activityContext.get(STATUS_ACTIVITY_CONTEXT_KEY)?.let {
         ActivityStatus.valueOf(it)
     }

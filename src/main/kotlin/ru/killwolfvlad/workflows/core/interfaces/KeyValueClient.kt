@@ -1,8 +1,5 @@
 package ru.killwolfvlad.workflows.core.interfaces
 
-import ru.killwolfvlad.workflows.core.types.WorkflowId
-import kotlin.time.Duration
-
 /**
  * An abstraction over key-value storage, e.g. Redis
  */
@@ -31,15 +28,6 @@ interface KeyValueClient {
 
     //endregion
 
-    //region SET
-
-    /**
-     * @see <a href="https://redis.io/docs/latest/commands/smembers">Redis SMEMBERS</a>
-     */
-    suspend fun sMembers(key: String): Set<String>
-
-    //endregion
-
     //region PUB/SUB
 
     /**
@@ -57,67 +45,26 @@ interface KeyValueClient {
     //region PIPELINES
 
     /**
-     * Invoke multiple [hGet] requests at once
+     * Invoke multiple `Redis HGET` requests at once
+     * @see <a href="https://redis.io/docs/latest/commands/hget">Redis HGET</a>
      */
     suspend fun pipelineHGet(vararg keyFields: Pair<String, String>): List<String?>
+
+    /**
+     * Invoke multiple `Redis HGETALL` requests at once
+     * @see <a href="https://redis.io/docs/latest/commands/hgetall">Redis HGETALL</a>
+     */
+    suspend fun pipelineHGetAll(vararg keys: String): List<Map<String, String>>
 
     //endregion
 
     // region SCRIPTS
 
     /**
-     * Invoke [hSet], only if [key] exists,
-     *
-     * See [ru.killwolfvlad.workflows.redis.RedisScripts.hSetIfKeyExistsScript] for implementation
+     * Eval [script]. Use [scriptId] to associate script with their hash.
+     * @see <a href="https://redis.io/docs/latest/commands/evalsha">Redis EVALSHA</a>
      */
-    suspend fun hSetIfKeyExists(key: String, vararg fieldValues: Pair<String, String>)
-
-    /**
-     * TODO: add docs
-     *
-     * See [ru.killwolfvlad.workflows.redis.RedisScripts.acquireLockScript] for implementation
-     */
-    suspend fun acquireLock(
-        // keys
-        workflowKey: String,
-        workflowIdsKey: String,
-        // arguments
-        workflowId: WorkflowId,
-        lockTimeout: Duration,
-        // workflow context
-        workflowLockFieldKey: String,
-        workerId: String,
-        workflowClassNameFieldKey: String,
-        workflowClassName: String,
-        initialContext: Map<String, String>,
-    ): Boolean
-
-    /**
-     * TODO: add docs
-     *
-     * See [ru.killwolfvlad.workflows.redis.RedisScripts.heartbeatScript] for implementation
-     */
-    suspend fun heartbeat(
-        // keys
-        workflowKey: String,
-        // arguments
-        lockTimeout: Duration,
-        workflowLockFieldKey: String,
-        workflowSignalFieldKey: String,
-    ): String?
-
-    /**
-     * TODO: add docs
-     *
-     * See [ru.killwolfvlad.workflows.redis.RedisScripts.deleteWorkflowScript] for implementation
-     */
-    suspend fun deleteWorkflow(
-        // keys
-        workflowKey: String,
-        workflowIdsKey: String,
-        // arguments
-        workflowId: WorkflowId,
-    )
+    suspend fun <T> eval(scriptId: String, script: String, keys: List<String>, vararg args: String): T
 
     // endregion
 }

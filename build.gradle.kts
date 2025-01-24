@@ -18,10 +18,14 @@ dependencies {
     compileOnly(libs.bundles.redis)
     testImplementation(libs.bundles.redis)
 
-    testImplementation(kotlin("test"))
+    testImplementation(kotlin("reflect"))
+
+    testImplementation(libs.bundles.kotest)
+
+    testImplementation(libs.bundles.logback)
 }
 
-tasks.test {
+tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
 

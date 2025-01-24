@@ -15,17 +15,17 @@ import ru.killwolfvlad.workflows.core.types.workflowKey
 import kotlin.reflect.KClass
 
 internal class WorkflowsRunner(
+    mainJob: Job,
     private val config: WorkflowsConfig,
     private val keyValueClient: KeyValueClient,
     private val workflowsClassManager: WorkflowsClassManager,
     private val workflowsExceptionHandler: WorkflowsExceptionHandler,
 ) {
     private val coroutineScope = CoroutineScope(
-        Dispatchers.IO + CoroutineName(WorkflowsRunner::class.simpleName + "Coroutine"),
+        Dispatchers.IO + CoroutineName(WorkflowsRunner::class.simpleName + "Coroutine") + mainJob,
     )
 
-    private val workflowInstancesMap = ConcurrentMap<WorkflowId, Job>()
-    private val workflowHeartbeatsMap = ConcurrentMap<WorkflowId, Job>()
+    private val workflowJobs = ConcurrentMap<WorkflowId, Job>()
 
     suspend fun run(
         workflowId: WorkflowId,
@@ -42,19 +42,17 @@ internal class WorkflowsRunner(
             return
         }
 
-        launchHeartbeat(workflowId, workflowKey)
-
         launchWorkflow(workflowId, workflowKey, workflowClass)
     }
 
     fun cancel(workflowId: WorkflowId) {
-        workflowInstancesMap[workflowId]?.cancel()
+        workflowJobs[workflowId]?.cancel()
     }
 
     fun contains(workflowId: WorkflowId): Boolean =
-        workflowInstancesMap.containsKey(workflowId) || workflowHeartbeatsMap.containsKey(workflowId)
+        workflowJobs.containsKey(workflowId)
 
-    private suspend fun acquireLock(
+    private suspend inline fun acquireLock(
         workflowId: WorkflowId,
         workflowKey: String,
         initialContext: Map<String, String>,
@@ -63,68 +61,23 @@ internal class WorkflowsRunner(
         keyValueClient.acquireLock(
             // keys
             workflowKey = workflowKey,
-            workflowIdsKey = WORKFLOW_IDS_KEY,
+            workflowLocksKey = WORKFLOW_LOCKS_KEY,
+            workflowWorkersKey = WORKFLOW_WORKERS_KEY,
             // arguments
             workflowId = workflowId,
-            lockTimeout = config.lockTimeout,
-            // workflow context
-            workflowLockFieldKey = WORKFLOW_LOCK_FIELD_KEY,
             workerId = config.workerId,
+            // workflow context
             workflowClassNameFieldKey = WORKFLOW_CLASS_NAME_FIELD_KEY,
             workflowClassName = workflowClass.workflowClassName,
             initialContext = initialContext,
         )
-
-    private fun launchHeartbeat(
-        workflowId: WorkflowId,
-        workflowKey: String,
-    ) {
-        workflowHeartbeatsMap[workflowId] = coroutineScope.launch(start = CoroutineStart.LAZY) heartbeat@{
-            while (true) {
-                delay(config.heartbeatInterval)
-
-                if (workflowInstancesMap[workflowId] == null) {
-                    return@heartbeat
-                }
-
-                try {
-                    val signal = keyValueClient.heartbeat(
-                        // keys
-                        workflowKey = workflowKey,
-                        // arguments
-                        lockTimeout = config.lockTimeout,
-                        workflowLockFieldKey = WORKFLOW_LOCK_FIELD_KEY,
-                        workflowSignalFieldKey = WORKFLOW_SIGNAL_FIELD_KEY
-                    )
-
-                    if (signal == WORKFLOW_CANCEL_SIGNAL) {
-                        workflowInstancesMap[workflowId]?.cancel()
-                    }
-                } catch (_: CancellationException) {
-                    return@heartbeat
-                } catch (exception: Exception) {
-                    runCatching {
-                        workflowsExceptionHandler.handle(exception)
-                    }
-                }
-            }
-        }.also {
-            it.invokeOnCompletion {
-                workflowHeartbeatsMap.remove(workflowId)
-            }
-
-            it.start()
-        }
-    }
 
     private fun launchWorkflow(
         workflowId: WorkflowId,
         workflowKey: String,
         workflowClass: KClass<out Workflow>,
     ) {
-        val workflow = workflowsClassManager.getInstance(workflowClass)
-
-        workflowInstancesMap[workflowId] = coroutineScope.launch(
+        workflowJobs[workflowId] = coroutineScope.launch(
             WorkflowCoroutineContextElement(workflowId, workflowKey),
             CoroutineStart.LAZY,
         ) workflow@{
@@ -132,6 +85,8 @@ internal class WorkflowsRunner(
                 val signal = keyValueClient.hGet(workflowKey, WORKFLOW_SIGNAL_FIELD_KEY)
 
                 if (signal != WORKFLOW_CANCEL_SIGNAL) {
+                    val workflow = workflowsClassManager.getInstance(workflowClass)
+
                     workflow.execute()
                 }
             } catch (_: CancellationException) {
@@ -148,7 +103,7 @@ internal class WorkflowsRunner(
                 keyValueClient.deleteWorkflow(
                     // keys
                     workflowKey = workflowKey,
-                    workflowIdsKey = WORKFLOW_IDS_KEY,
+                    workflowLocksKey = WORKFLOW_LOCKS_KEY,
                     // arguments
                     workflowId = workflowId,
                 )
@@ -161,8 +116,7 @@ internal class WorkflowsRunner(
             }
         }.also {
             it.invokeOnCompletion {
-                workflowInstancesMap.remove(workflowId)
-                workflowHeartbeatsMap[workflowId]?.cancel()
+                workflowJobs.remove(workflowId)
             }
 
             it.start()

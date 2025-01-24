@@ -5,27 +5,32 @@ import ru.killwolfvlad.workflows.core.WorkflowsConfig
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.interfaces.WorkflowsExceptionHandler
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_CLASS_NAME_FIELD_KEY
-import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_IDS_KEY
-import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_LOCK_FIELD_KEY
+import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_LOCKS_KEY
+import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_WORKERS_KEY
 import ru.killwolfvlad.workflows.core.internal.extensions.workflowClass
 import ru.killwolfvlad.workflows.core.types.WorkflowId
 import ru.killwolfvlad.workflows.core.types.workflowKey
 
 internal class WorkflowsScheduler(
+    mainJob: Job,
     private val config: WorkflowsConfig,
     private val keyValueClient: KeyValueClient,
     private val workflowsExceptionHandler: WorkflowsExceptionHandler,
     private val workflowsRunner: WorkflowsRunner,
 ) {
     private val coroutineScope = CoroutineScope(
-        Dispatchers.IO + CoroutineName(WorkflowsScheduler::class.simpleName + "Coroutine"),
+        Dispatchers.IO + CoroutineName(WorkflowsScheduler::class.simpleName + "Coroutine") + mainJob,
     )
 
     private lateinit var fetchJob: Job
 
-    fun init() {
+    suspend fun init() {
+        fetchWorkflows()
+
         fetchJob = coroutineScope.launch {
-            do {
+            delay(config.fetchInterval)
+
+            while (true) {
                 try {
                     fetchWorkflows()
                 } catch (_: CancellationException) {
@@ -35,38 +40,28 @@ internal class WorkflowsScheduler(
                         workflowsExceptionHandler.handle(exception)
                     }
                 }
-
-                delay(config.fetchInterval)
-            } while (true)
+            }
         }
     }
 
-    private suspend fun fetchWorkflows() {
-        val workflows = keyValueClient.sMembers(WORKFLOW_IDS_KEY).map {
+    private suspend inline fun fetchWorkflows() {
+        val (locks, workers) = keyValueClient.pipelineHGetAll(WORKFLOW_LOCKS_KEY, WORKFLOW_WORKERS_KEY)
+
+        val workflowsToRun = locks.filter filterWorkflows@{
+            if (workflowsRunner.contains(WorkflowId(it.key))) {
+                return@filterWorkflows false
+            }
+
+            if (it.value == config.workerId) {
+                return@filterWorkflows true
+            }
+
+            return@filterWorkflows !workers.contains(it.value)
+        }.map {
             object {
-                val workflowId = WorkflowId(it)
+                val workflowId = WorkflowId(it.key)
                 val workflowKey = workflowId.workflowKey
             }
-        }.filter {
-            !workflowsRunner.contains(it.workflowId)
-        }
-
-        if (workflows.isEmpty()) {
-            return
-        }
-
-        val workflowLocks = keyValueClient.pipelineHGet(
-            *workflows.map { it.workflowKey to WORKFLOW_LOCK_FIELD_KEY }.toTypedArray()
-        ).zip(workflows) { a, b ->
-            object {
-                val workflowId = b.workflowId
-                val workflowKey = b.workflowKey
-                val lockWorkerId = a
-            }
-        }
-
-        val workflowsToRun = workflowLocks.filter {
-            it.lockWorkerId == config.workerId || it.lockWorkerId == null
         }
 
         if (workflowsToRun.isEmpty()) {

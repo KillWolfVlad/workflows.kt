@@ -17,14 +17,14 @@ class WorkflowsWorkerHeartbeat(
     )
 
     suspend fun init() {
-        keyValueClient.heartbeat(WORKFLOW_WORKERS_KEY, config.workerId, config.lockTimeout)
+        heartbeat()
 
         coroutineScope.launch {
             while (true) {
                 delay(config.heartbeatInterval)
 
                 try {
-                    keyValueClient.heartbeat(WORKFLOW_WORKERS_KEY, config.workerId, config.lockTimeout)
+                    heartbeat()
                 } catch (_: CancellationException) {
                     // skip cancellation exception
                 } catch (exception: Exception) {
@@ -35,4 +35,7 @@ class WorkflowsWorkerHeartbeat(
             }
         }
     }
+
+    private suspend inline fun heartbeat() =
+        keyValueClient.heartbeat(WORKFLOW_WORKERS_KEY, config.workerId, config.lockTimeout)
 }

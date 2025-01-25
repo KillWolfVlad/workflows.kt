@@ -1,13 +1,13 @@
-package ru.killwolfvlad.workflows.activities
+package ru.killwolfvlad.workflows.core
 
-import ru.killwolfvlad.workflows.activities.coroutines.getActivityId
-import ru.killwolfvlad.workflows.activities.internal.consts.ACTIVITY_CONTEXT_FIELD_KEY_PREFIX
+import ru.killwolfvlad.workflows.core.coroutines.getActivityId
 import ru.killwolfvlad.workflows.core.coroutines.getWorkflowKey
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
-import ru.killwolfvlad.workflows.core.workflowContextFieldKey
+import ru.killwolfvlad.workflows.core.internal.consts.ACTIVITY_CONTEXT_FIELD_NAME
+import ru.killwolfvlad.workflows.core.internal.consts.ACTIVITY_FIELD_KEY_PREFIX
 import kotlin.coroutines.coroutineContext
 
-class ActivityContext(
+class ActivityContext internal constructor(
     private val keyValueClient: KeyValueClient,
 ) {
     suspend fun get(key: String): String? =
@@ -26,15 +26,14 @@ class ActivityContext(
         }.toMap()
     }
 
-    suspend fun set(context: Map<String, String>, workflowContext: Map<String, String> = emptyMap()) {
-        if (context.isEmpty() && workflowContext.isEmpty()) {
+    suspend fun set(context: Map<String, String>) {
+        if (context.isEmpty()) {
             return
         }
 
         keyValueClient.hSet(
             coroutineContext.getWorkflowKey(),
             *context.map { it.key.getActivityContextFieldKey() to it.value }.toTypedArray(),
-            *workflowContext.map { it.key.workflowContextFieldKey to it.value }.toTypedArray(),
         )
     }
 
@@ -51,4 +50,4 @@ class ActivityContext(
 }
 
 internal suspend inline fun String.getActivityContextFieldKey(): String =
-    "${ACTIVITY_CONTEXT_FIELD_KEY_PREFIX}:${coroutineContext.getActivityId()}:$this"
+    "${ACTIVITY_FIELD_KEY_PREFIX}:${coroutineContext.getActivityId()}:${ACTIVITY_CONTEXT_FIELD_NAME}:$this"

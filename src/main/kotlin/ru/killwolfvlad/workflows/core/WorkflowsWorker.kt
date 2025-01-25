@@ -20,8 +20,20 @@ class WorkflowsWorker(
 ) {
     private val mainJob = Job()
 
+    private val workflowContext = WorkflowContext(keyValueClient)
+
+    private val activityContext = ActivityContext(keyValueClient)
+
     private val workflowsRunner =
-        WorkflowsRunner(mainJob, config, keyValueClient, workflowsClassManager, workflowsExceptionHandler)
+        WorkflowsRunner(
+            mainJob,
+            activityContext,
+            config,
+            keyValueClient,
+            workflowContext,
+            workflowsClassManager,
+            workflowsExceptionHandler,
+        )
 
     private val workflowsWorkerHeartbeat =
         WorkflowsWorkerHeartbeat(mainJob, config, keyValueClient, workflowsExceptionHandler)

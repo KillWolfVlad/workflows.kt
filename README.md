@@ -5,4 +5,4 @@
   <br>
 </p>
 
-Embedded Workflows As Code engine for Kotlin powered by Coroutines and Redis.
+Embedded Workflows As Code engine for Kotlin powered by Coroutines and Redis-like DB.

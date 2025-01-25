@@ -3,17 +3,24 @@ package ru.killwolfvlad.workflows.activities
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import ru.killwolfvlad.workflows.core.ActivityContext
+import ru.killwolfvlad.workflows.core.coroutines.getActivityContext
+import ru.killwolfvlad.workflows.core.withActivity
+import kotlin.coroutines.coroutineContext
 import kotlin.time.Duration
 
 suspend fun delayActivity(
-    activityContext: ActivityContext,
     activityId: String,
     duration: Duration,
-) = withActivity(activityContext, activityId) {
+) = withActivity(activityId) {
+    val now = Clock.System.now()
+
+    val activityContext = coroutineContext.getActivityContext()
+
     var untilDate = activityContext.getUntilDate()
 
     if (untilDate == null) {
-        untilDate = Clock.System.now() + duration
+        untilDate = now + duration
 
         activityContext.setUntilDate(untilDate)
     }

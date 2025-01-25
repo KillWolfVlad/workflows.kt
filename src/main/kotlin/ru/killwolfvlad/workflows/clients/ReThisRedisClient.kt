@@ -1,12 +1,13 @@
-package ru.killwolfvlad.workflows.redis
+package ru.killwolfvlad.workflows.clients
 
 import eu.vendeli.rethis.ReThis
 import eu.vendeli.rethis.commands.*
 import eu.vendeli.rethis.types.core.RType
+import eu.vendeli.rethis.types.core.toArg
 import io.ktor.util.collections.*
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 
-class ReThisClient(
+class ReThisRedisClient(
     private val client: ReThis,
 ) : KeyValueClient {
     //region HASH
@@ -14,8 +15,16 @@ class ReThisClient(
     override suspend fun hGet(key: String, field: String): String? =
         client.hGet(key, field)
 
+    // TODO: use regular method, after fix
     override suspend fun hMGet(key: String, vararg fields: String): List<String?> =
-        client.hMGet(key, *fields)
+        //client.hMGet(key, *fields)
+        (client.execute(
+            listOf(
+                "HMGET",
+                key,
+                *fields
+            ).toArg()
+        ).ensureValue as List<RType>).map { it.ensureValue as String? }
 
     override suspend fun hSet(key: String, vararg fieldValues: Pair<String, String>) {
         client.hSet(key, *fieldValues)
@@ -48,30 +57,35 @@ class ReThisClient(
                 hGet(it.first, it.second)
             }
         }.map {
-            it.safeGetValue() as String?
+            it.ensureValue as String?
         }
 
-    // TODO: fix bug with pipeline
+    // TODO: use pipeline, after fix
+    @Suppress("UNCHECKED_CAST")
     override suspend fun pipelineHGetAll(vararg keys: String): List<Map<String, String>> =
-        client.pipeline {
-            keys.forEach {
-                hGetAll(it)
-            }
-        }.map {
-            it.safeGetValue() as Map<String, String>
+//        client.pipeline {
+//            keys.forEach {
+//                hGetAll(it)
+//            }
+//        }.map {
+//            (it.ensureValue as Map<RPrimitive, RType?>)
+//                .map { it.key.ensureValue as String to it.value?.ensureValue as String }.toMap()
+//        }
+        keys.map {
+            client.hGetAll(it) as Map<String, String>
         }
 
     //endregion
 
     // region SCRIPTS
 
+    @Suppress("UNCHECKED_CAST")
     override suspend fun <T> eval(
         scriptId: String,
         script: String,
         keys: List<String>,
         vararg args: String,
-    ): T =
-        client.fastEval(scriptId, script, keys.size.toLong(), *keys.toTypedArray(), *args).value as T
+    ): T = client.fastEval(scriptId, script, keys.size.toLong(), *keys.toTypedArray(), *args).value as T
 
     // endregion
 }
@@ -111,8 +125,9 @@ private suspend inline fun ReThis.fastEval(
     return result
 }
 
-private inline fun RType.safeGetValue(): Any? =
-    when (this) {
-        is RType.Error -> throw exception
-        else -> value
-    }
+private inline val RType.ensureValue: Any?
+    get() =
+        when (this) {
+            is RType.Error -> throw exception
+            else -> value
+        }

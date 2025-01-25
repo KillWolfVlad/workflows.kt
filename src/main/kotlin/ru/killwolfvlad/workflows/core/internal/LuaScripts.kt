@@ -4,7 +4,7 @@ import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.types.WorkflowId
 import kotlin.time.Duration
 
-internal object RedisScripts {
+internal object LuaScripts {
     val heartbeat =
         """
             local workflowWorkersKey = KEYS[1]
@@ -89,8 +89,8 @@ internal suspend inline fun KeyValueClient.heartbeat(
     lockTimeout: Duration,
 ) {
     eval<Unit>(
-        RedisScripts::heartbeat.name,
-        RedisScripts.heartbeat,
+        LuaScripts::heartbeat.name,
+        LuaScripts.heartbeat,
         // keys
         listOf(
             workflowWorkersKey, // KEYS[1]
@@ -115,8 +115,8 @@ internal suspend inline fun KeyValueClient.acquireLock(
     initialContext: Map<String, String>,
 ): Boolean {
     val result = eval<Long>(
-        RedisScripts::acquireLock.name,
-        RedisScripts.acquireLock,
+        LuaScripts::acquireLock.name,
+        LuaScripts.acquireLock,
         // keys
         listOf(
             workflowKey, // KEYS[1]
@@ -144,8 +144,8 @@ internal suspend inline fun KeyValueClient.deleteWorkflow(
     workflowId: WorkflowId,
 ) {
     eval<Unit>(
-        RedisScripts::deleteWorkflow.name,
-        RedisScripts.deleteWorkflow,
+        LuaScripts::deleteWorkflow.name,
+        LuaScripts.deleteWorkflow,
         // keys
         listOf(
             workflowKey, // KEYS[1]
@@ -161,8 +161,8 @@ internal suspend inline fun KeyValueClient.hSetIfKeyExistsScript(
     vararg fieldValues: Pair<String, String>,
 ) {
     eval<Unit>(
-        RedisScripts::hSetIfKeyExistsScript.name,
-        RedisScripts.hSetIfKeyExistsScript,
+        LuaScripts::hSetIfKeyExistsScript.name,
+        LuaScripts.hSetIfKeyExistsScript,
         // keys
         listOf(
             key, // KEYS[1]

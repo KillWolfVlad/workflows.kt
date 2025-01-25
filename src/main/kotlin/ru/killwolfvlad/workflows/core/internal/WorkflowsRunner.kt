@@ -2,6 +2,8 @@ package ru.killwolfvlad.workflows.core.internal
 
 import io.ktor.util.collections.*
 import kotlinx.coroutines.*
+import ru.killwolfvlad.workflows.core.ActivityContext
+import ru.killwolfvlad.workflows.core.WorkflowContext
 import ru.killwolfvlad.workflows.core.WorkflowsConfig
 import ru.killwolfvlad.workflows.core.coroutines.WorkflowCoroutineContextElement
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
@@ -16,8 +18,10 @@ import kotlin.reflect.KClass
 
 internal class WorkflowsRunner(
     mainJob: Job,
+    private val activityContext: ActivityContext,
     private val config: WorkflowsConfig,
     private val keyValueClient: KeyValueClient,
+    private val workflowContext: WorkflowContext,
     private val workflowsClassManager: WorkflowsClassManager,
     private val workflowsExceptionHandler: WorkflowsExceptionHandler,
 ) {
@@ -78,7 +82,7 @@ internal class WorkflowsRunner(
         workflowClass: KClass<out Workflow>,
     ) {
         workflowJobs[workflowId] = coroutineScope.launch(
-            WorkflowCoroutineContextElement(workflowId, workflowKey),
+            WorkflowCoroutineContextElement(workflowId, workflowContext, activityContext, workflowKey, keyValueClient),
             CoroutineStart.LAZY,
         ) workflow@{
             try {

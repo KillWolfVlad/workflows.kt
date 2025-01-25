@@ -25,6 +25,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 # redis
 rethis = { module = "eu.vendeli:re.this", version.ref = "rethis" }
 lettuce = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
+kotlinx-coroutines-reactive = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactive", version.ref = "kotlinx-coroutines" }
 
 # kotest
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
@@ -47,7 +48,8 @@ kotlinx = [
 
 redis = [
     "rethis",
-    "lettuce"
+    "lettuce",
+    "kotlinx-coroutines-reactive"
 ]
 
 kotest = [

@@ -5,7 +5,7 @@ import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_CONTEXT_FIELD_KEY_PREFIX
 import kotlin.coroutines.coroutineContext
 
-class WorkflowContext(
+class WorkflowContext internal constructor(
     private val keyValueClient: KeyValueClient,
 ) {
     suspend fun get(key: String): String? =

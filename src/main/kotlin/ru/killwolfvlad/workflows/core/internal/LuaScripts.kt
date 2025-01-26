@@ -18,7 +18,7 @@ internal object LuaScripts {
             redis.call('HPEXPIRE', workflowWorkersKey, lockTimeout, 'FIELDS', 1, workerId)
         """.trimIndent()
 
-    val acquireLock =
+    val acquireWorkflowLock =
         """
             local workflowKey = KEYS[1]
             local workflowLocksKey = KEYS[2]
@@ -47,7 +47,7 @@ internal object LuaScripts {
                 return 2
             end
 
-            if redis.call('HEXISTS', workflowWorkersKey, workerId) == 0 then
+            if redis.call('HEXISTS', workflowWorkersKey, currentLockWorkerId) == 0 then
                 redis.call('HSET', workflowLocksKey, workflowId, workerId)
 
                 return 3
@@ -101,7 +101,7 @@ internal suspend inline fun KeyValueClient.heartbeat(
     )
 }
 
-internal suspend inline fun KeyValueClient.acquireLock(
+internal suspend inline fun KeyValueClient.acquireWorkflowLock(
     // keys
     workflowKey: String,
     workflowLocksKey: String,
@@ -113,10 +113,10 @@ internal suspend inline fun KeyValueClient.acquireLock(
     workflowClassNameFieldKey: String,
     workflowClassName: String,
     initialContext: Map<String, String>,
-): Boolean {
+): Long {
     val result = eval<Long>(
-        LuaScripts::acquireLock.name,
-        LuaScripts.acquireLock,
+        LuaScripts::acquireWorkflowLock.name,
+        LuaScripts.acquireWorkflowLock,
         // keys
         listOf(
             workflowKey, // KEYS[1]
@@ -133,7 +133,7 @@ internal suspend inline fun KeyValueClient.acquireLock(
         *initialContext.flatMap { listOf(it.key, it.value) }.toTypedArray()
     )
 
-    return result >= 1L
+    return result
 }
 
 internal suspend inline fun KeyValueClient.deleteWorkflow(

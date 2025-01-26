@@ -11,6 +11,8 @@ import io.lettuce.core.api.coroutines
 import io.lettuce.core.api.coroutines.RedisCoroutinesCommands
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import ru.killwolfvlad.workflows.clients.LettuceRedisClient
 import ru.killwolfvlad.workflows.clients.ReThisRedisClient
 import ru.killwolfvlad.workflows.core.WorkflowsConfig
@@ -25,7 +27,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalLettuceCoroutinesApi::class)
 abstract class WorkflowsDescribeSpec(body: WorkflowsDescribeSpec.() -> Unit = {}) : DescribeSpec() {
-    interface Client {
+    interface TestClient {
         val dbName: String
 
         val rawClient: RedisCoroutinesCommands<String, String>
@@ -40,16 +42,16 @@ abstract class WorkflowsDescribeSpec(body: WorkflowsDescribeSpec.() -> Unit = {}
 
     private val lettuceRedisClient = RedisClient.create(redisConnectionString)
 
-    val clients = listOf<Client>(
-        object : Client {
-            override val dbName = "Redis"
+    val testClients = listOf<TestClient>(
+        object : TestClient {
+            override val dbName = "Redis Standalone"
 
             override val rawClient = lettuceRedisClient.connect().coroutines()
 
             override val keyValueClient = LettuceRedisClient(lettuceRedisClient)
         },
-        object : Client {
-            override val dbName = "Redis"
+        object : TestClient {
+            override val dbName = "Redis Standalone"
 
             override val rawClient = lettuceRedisClient.connect().coroutines()
 
@@ -91,3 +93,7 @@ abstract class WorkflowsDescribeSpec(body: WorkflowsDescribeSpec.() -> Unit = {}
         body()
     }
 }
+
+@OptIn(ExperimentalLettuceCoroutinesApi::class)
+suspend fun RedisCoroutinesCommands<String, String>.hgetallAsMap(key: String): Map<String, String> =
+    hgetall(key).map { it.key to it.value }.toList().toMap()

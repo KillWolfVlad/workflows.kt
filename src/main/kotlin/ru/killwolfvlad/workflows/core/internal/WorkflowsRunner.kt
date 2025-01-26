@@ -42,7 +42,7 @@ internal class WorkflowsRunner(
 
         val workflowKey = workflowId.workflowKey
 
-        if (!acquireLock(workflowId, workflowKey, initialContext, workflowClass)) {
+        if (!acquireWorkflowLock(workflowId, workflowKey, initialContext, workflowClass)) {
             return
         }
 
@@ -56,13 +56,13 @@ internal class WorkflowsRunner(
     fun contains(workflowId: WorkflowId): Boolean =
         workflowJobs.containsKey(workflowId)
 
-    private suspend inline fun acquireLock(
+    private suspend inline fun acquireWorkflowLock(
         workflowId: WorkflowId,
         workflowKey: String,
         initialContext: Map<String, String>,
         workflowClass: KClass<out Workflow>,
     ): Boolean =
-        keyValueClient.acquireLock(
+        keyValueClient.acquireWorkflowLock(
             // keys
             workflowKey = workflowKey,
             workflowLocksKey = WORKFLOW_LOCKS_KEY,
@@ -74,7 +74,7 @@ internal class WorkflowsRunner(
             workflowClassNameFieldKey = WORKFLOW_CLASS_NAME_FIELD_KEY,
             workflowClassName = workflowClass.workflowClassName,
             initialContext = initialContext,
-        )
+        ) >= 1L
 
     private fun launchWorkflow(
         workflowId: WorkflowId,

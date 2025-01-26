@@ -1,21 +1,19 @@
 package ru.killwolfvlad.workflows.clients
 
 import io.kotest.assertions.nondeterministic.eventually
-import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 import io.lettuce.core.ExperimentalLettuceCoroutinesApi
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
 import ru.killwolfvlad.workflows.WorkflowsDescribeSpec
+import ru.killwolfvlad.workflows.hgetallAsMap
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalLettuceCoroutinesApi::class)
 class ClientsTest : WorkflowsDescribeSpec({
-    for (testKeyValueClient in clients) {
-        val rawClient = testKeyValueClient.rawClient
-        val keyValueClient = testKeyValueClient.keyValueClient
+    for (testClient in testClients) {
+        val rawClient = testClient.rawClient
+        val keyValueClient = testClient.keyValueClient
 
-        describe(testKeyValueClient.name) {
+        describe(testClient.name) {
             beforeEach {
                 rawClient.flushdb()
             }
@@ -93,8 +91,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must set values") {
-                        rawClient.hgetall("key").map { it.key to it.value }
-                            .toList() shouldContainExactlyInAnyOrder listOf(
+                        rawClient.hgetallAsMap("key") shouldBe mapOf(
                             "field1" to "value1",
                             "field2" to "value2",
                         )
@@ -112,8 +109,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must set values") {
-                            rawClient.hgetall("key").map { it.key to it.value }
-                                .toList() shouldContainExactlyInAnyOrder listOf(
+                            rawClient.hgetallAsMap("key") shouldBe mapOf(
                                 "field1" to "value1",
                                 "field2" to "value2",
                                 "field3" to "value3",
@@ -127,8 +123,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must overwrite values") {
-                            rawClient.hgetall("key").map { it.key to it.value }
-                                .toList() shouldContainExactlyInAnyOrder listOf(
+                            rawClient.hgetallAsMap("key") shouldBe mapOf(
                                 "field1" to "value11",
                                 "field2" to "value2",
                                 "field3" to "value3",
@@ -142,8 +137,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must overwrite values") {
-                            rawClient.hgetall("key").map { it.key to it.value }
-                                .toList() shouldContainExactlyInAnyOrder listOf(
+                            rawClient.hgetallAsMap("key") shouldBe mapOf(
                                 "field1" to "value11",
                                 "field2" to "value22",
                             )
@@ -161,8 +155,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must do nothing") {
-                        rawClient.hgetall("key2").map { it.key to it.value }
-                            .toList() shouldContainExactlyInAnyOrder listOf(
+                        rawClient.hgetallAsMap("key2") shouldBe mapOf(
                             "field1" to "value1",
                         )
                     }
@@ -179,8 +172,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must do nothing") {
-                            rawClient.hgetall("key").map { it.key to it.value }
-                                .toList() shouldContainExactlyInAnyOrder listOf(
+                            rawClient.hgetallAsMap("key") shouldBe mapOf(
                                 "field1" to "value1",
                                 "field2" to "value2",
                                 "field3" to "value3"
@@ -194,8 +186,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must delete only existing fields") {
-                            rawClient.hgetall("key").map { it.key to it.value }
-                                .toList() shouldContainExactlyInAnyOrder listOf(
+                            rawClient.hgetallAsMap("key") shouldBe mapOf(
                                 "field2" to "value2",
                                 "field3" to "value3"
                             )
@@ -208,8 +199,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must delete fields") {
-                            rawClient.hgetall("key").map { it.key to it.value }
-                                .toList() shouldContainExactlyInAnyOrder listOf(
+                            rawClient.hgetallAsMap("key") shouldBe mapOf(
                                 "field3" to "value3"
                             )
                         }
@@ -221,11 +211,11 @@ class ClientsTest : WorkflowsDescribeSpec({
                 var receivedMessage: String? = null
 
                 beforeEach {
-                    keyValueClient.subscribe(testKeyValueClient.name) { message ->
+                    keyValueClient.subscribe(testClient.name) { message ->
                         receivedMessage = message
                     }
 
-                    keyValueClient.publish(testKeyValueClient.name, "some-message")
+                    keyValueClient.publish(testClient.name, "some-message")
                 }
 
                 it("must receive message") {
@@ -339,8 +329,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must invoke script") {
-                        rawClient.hgetall("key").map { it.key to it.value }
-                            .toList() shouldContainExactlyInAnyOrder listOf(
+                        rawClient.hgetallAsMap("key") shouldBe mapOf(
                             "field1" to "value1",
                         )
                     }
@@ -367,8 +356,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must invoke script") {
-                        rawClient.hgetall("key").map { it.key to it.value }
-                            .toList() shouldContainExactlyInAnyOrder listOf(
+                        rawClient.hgetallAsMap("key") shouldBe mapOf(
                             "field1" to "value1",
                         )
                     }
@@ -391,8 +379,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must invoke script") {
-                        rawClient.hgetall("key").map { it.key to it.value }
-                            .toList() shouldContainExactlyInAnyOrder listOf(
+                        rawClient.hgetallAsMap("key") shouldBe mapOf(
                             "field1" to "value1",
                             "field2" to "value2",
                         )

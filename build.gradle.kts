@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.plugin.serialization)
@@ -22,11 +24,18 @@ dependencies {
 
     testImplementation(libs.bundles.kotest)
 
+    testImplementation(libs.bundles.mockk)
+
     testImplementation(libs.bundles.logback)
 }
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+}
+
+tasks.named<KotlinCompilationTask<*>>("compileTestKotlin").configure {
+    compilerOptions.freeCompilerArgs.add("-opt-in=ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance")
+    compilerOptions.freeCompilerArgs.add("-opt-in=io.lettuce.core.ExperimentalLettuceCoroutinesApi")
 }
 
 kotlin {

@@ -6,15 +6,15 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 
 @ConsistentCopyVisibility
-data class ActivityCoroutineContextElement internal constructor(
+data class ActivityCoroutineContext internal constructor(
     val activityId: String,
-) : AbstractCoroutineContextElement(ActivityCoroutineContextElement) {
-    companion object Key : CoroutineContext.Key<ActivityCoroutineContextElement>
+) : AbstractCoroutineContextElement(ActivityCoroutineContext) {
+    companion object Key : CoroutineContext.Key<ActivityCoroutineContext>
 }
 
 suspend inline fun CoroutineContext.getActivityId(): String =
-    coroutineContext[ActivityCoroutineContextElement]?.activityId
-        ?: throw NullPointerException("${ActivityCoroutineContextElement::class.simpleName} must be in coroutineContext!")
+    coroutineContext[ActivityCoroutineContext]?.activityId
+        ?: throw NullPointerException("${ActivityCoroutineContext::class.simpleName} must be in coroutineContext!")
 
 suspend inline fun Workflow.getActivityId(): String =
     coroutineContext.getActivityId()

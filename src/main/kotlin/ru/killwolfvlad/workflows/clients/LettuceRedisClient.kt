@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalLettuceCoroutinesApi::class)
-
 package ru.killwolfvlad.workflows.clients
 
 import io.ktor.util.collections.*
@@ -13,8 +11,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactive.awaitFirstOrNull
+import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 
+@OptIn(WorkflowsPerformance::class, ExperimentalLettuceCoroutinesApi::class)
 class LettuceRedisClient(
     rootJob: Job,
     redisClient: RedisClient,
@@ -104,6 +104,7 @@ class LettuceRedisClient(
 
 private val scriptsSha1Map = ConcurrentMap<String, String>()
 
+@ExperimentalLettuceCoroutinesApi
 private suspend inline fun <reified K : Any, reified V : Any, reified T> RedisCoroutinesCommands<K, V>.fastEval(
     scriptId: String,
     script: String,

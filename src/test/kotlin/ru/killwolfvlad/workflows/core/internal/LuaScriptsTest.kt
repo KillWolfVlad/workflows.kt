@@ -3,7 +3,6 @@ package ru.killwolfvlad.workflows.core.internal
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.longs.shouldBeInRange
 import io.kotest.matchers.shouldBe
-import io.lettuce.core.ExperimentalLettuceCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import ru.killwolfvlad.workflows.WorkflowsDescribeSpec
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_CLASS_NAME_FIELD_KEY
@@ -14,7 +13,6 @@ import ru.killwolfvlad.workflows.core.types.WorkflowId
 import ru.killwolfvlad.workflows.core.types.workflowKey
 import ru.killwolfvlad.workflows.hgetallAsMap
 
-@OptIn(ExperimentalLettuceCoroutinesApi::class)
 class LuaScriptsTest : WorkflowsDescribeSpec({
     for (testClient in testClients) {
         val rawClient = testClient.rawClient

@@ -1,12 +1,13 @@
 package ru.killwolfvlad.workflows.core
 
+import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.coroutines.getActivityId
 import ru.killwolfvlad.workflows.core.coroutines.getWorkflowKey
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
-import ru.killwolfvlad.workflows.core.internal.consts.ACTIVITY_CONTEXT_FIELD_NAME
 import ru.killwolfvlad.workflows.core.internal.consts.ACTIVITY_FIELD_KEY_PREFIX
 import kotlin.coroutines.coroutineContext
 
+@WorkflowsPerformance
 class ActivityContext internal constructor(
     private val keyValueClient: KeyValueClient,
 ) {
@@ -50,4 +51,4 @@ class ActivityContext internal constructor(
 }
 
 internal suspend inline fun String.getActivityContextFieldKey(): String =
-    "${ACTIVITY_FIELD_KEY_PREFIX}:${coroutineContext.getActivityId()}:${ACTIVITY_CONTEXT_FIELD_NAME}:$this"
+    "${ACTIVITY_FIELD_KEY_PREFIX}:${coroutineContext.getActivityId()}:ctx:$this"

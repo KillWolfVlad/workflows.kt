@@ -5,17 +5,22 @@ import kotlinx.coroutines.*
 import ru.killwolfvlad.workflows.core.ActivityContext
 import ru.killwolfvlad.workflows.core.WorkflowContext
 import ru.killwolfvlad.workflows.core.WorkflowsConfig
-import ru.killwolfvlad.workflows.core.coroutines.WorkflowCoroutineContextElement
+import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
+import ru.killwolfvlad.workflows.core.coroutines.WorkflowCoroutineContext
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.interfaces.Workflow
 import ru.killwolfvlad.workflows.core.interfaces.WorkflowsClassManager
 import ru.killwolfvlad.workflows.core.interfaces.WorkflowsExceptionHandler
-import ru.killwolfvlad.workflows.core.internal.consts.*
+import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_CLASS_NAME_FIELD_KEY
+import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_LOCKS_KEY
+import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_WORKERS_KEY
+import ru.killwolfvlad.workflows.core.internal.enums.WorkflowSignal
 import ru.killwolfvlad.workflows.core.internal.extensions.workflowClassName
 import ru.killwolfvlad.workflows.core.types.WorkflowId
 import ru.killwolfvlad.workflows.core.types.workflowKey
 import kotlin.reflect.KClass
 
+@OptIn(WorkflowsPerformance::class)
 internal class WorkflowsRunner(
     rootJob: Job,
     private val activityContext: ActivityContext,
@@ -82,13 +87,15 @@ internal class WorkflowsRunner(
         workflowClass: KClass<out Workflow>,
     ) {
         workflowJobs[workflowId] = coroutineScope.launch(
-            WorkflowCoroutineContextElement(workflowId, workflowContext, activityContext, workflowKey, keyValueClient),
+            WorkflowCoroutineContext(workflowId, workflowContext, activityContext, workflowKey, keyValueClient),
             CoroutineStart.LAZY,
         ) workflow@{
             try {
-                val signal = keyValueClient.hGet(workflowKey, WORKFLOW_SIGNAL_FIELD_KEY)
+                val signal = keyValueClient.hGet(workflowKey, WorkflowSignal.FIELD_KEY)?.let {
+                    WorkflowSignal.valueOf(it)
+                }
 
-                if (signal != WORKFLOW_CANCEL_SIGNAL) {
+                if (signal != WorkflowSignal.CANCEL) {
                     val workflow = workflowsClassManager.getInstance(workflowClass)
 
                     workflow.execute()

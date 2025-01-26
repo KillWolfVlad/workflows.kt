@@ -5,10 +5,10 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.mpp.bestName
 import io.ktor.http.*
 import io.ktor.util.logging.*
-import io.lettuce.core.ExperimentalLettuceCoroutinesApi
 import io.lettuce.core.RedisClient
 import io.lettuce.core.api.coroutines
 import io.lettuce.core.api.coroutines.RedisCoroutinesCommands
+import io.mockk.clearAllMocks
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.map
@@ -25,7 +25,6 @@ import kotlin.reflect.full.primaryConstructor
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-@OptIn(ExperimentalLettuceCoroutinesApi::class)
 abstract class WorkflowsDescribeSpec(body: WorkflowsDescribeSpec.() -> Unit = {}) : DescribeSpec() {
     interface TestClient {
         val dbName: String
@@ -89,12 +88,13 @@ abstract class WorkflowsDescribeSpec(body: WorkflowsDescribeSpec.() -> Unit = {}
     init {
         afterEach {
             rootJob.cancelChildren()
+
+            clearAllMocks()
         }
 
         body()
     }
 }
 
-@OptIn(ExperimentalLettuceCoroutinesApi::class)
 suspend fun RedisCoroutinesCommands<String, String>.hgetallAsMap(key: String): Map<String, String> =
     hgetall(key).map { it.key to it.value }.toList().toMap()

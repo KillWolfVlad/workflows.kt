@@ -12,8 +12,9 @@ Embedded Workflows As Code engine for Kotlin powered by Coroutines and Redis-lik
 - Be fast
 - Require minimum resources
 - Provide an enjoyable developer experience
+- Run a lot of workflows simultaneously 1 000 000+
 
-## Use Cases
+## Typical Use Cases
 
 - Durable timers for notifications or any other delayed jobs
 - Durable workflows in multi-instances application

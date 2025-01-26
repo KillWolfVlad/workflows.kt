@@ -1,5 +1,6 @@
 package ru.killwolfvlad.workflows.core.internal
 
+import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.types.WorkflowId
 import kotlin.time.Duration
@@ -83,6 +84,7 @@ internal object LuaScripts {
         """.trimIndent()
 }
 
+@WorkflowsPerformance
 internal suspend inline fun KeyValueClient.heartbeat(
     workflowWorkersKey: String,
     workerId: String,
@@ -101,6 +103,7 @@ internal suspend inline fun KeyValueClient.heartbeat(
     )
 }
 
+@WorkflowsPerformance
 internal suspend inline fun KeyValueClient.acquireWorkflowLock(
     // keys
     workflowKey: String,
@@ -136,6 +139,7 @@ internal suspend inline fun KeyValueClient.acquireWorkflowLock(
     return result
 }
 
+@WorkflowsPerformance
 internal suspend inline fun KeyValueClient.deleteWorkflow(
     // keys
     workflowKey: String,
@@ -156,6 +160,7 @@ internal suspend inline fun KeyValueClient.deleteWorkflow(
     )
 }
 
+@WorkflowsPerformance
 internal suspend inline fun KeyValueClient.hSetIfKeyExistsScript(
     key: String,
     vararg fieldValues: Pair<String, String>,

@@ -1,5 +1,6 @@
 package ru.killwolfvlad.workflows.core
 
+import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.interfaces.Workflow
 import ru.killwolfvlad.workflows.core.interfaces.WorkflowsClassManager
@@ -11,6 +12,7 @@ import ru.killwolfvlad.workflows.core.internal.WorkflowsWorkerHeartbeat
 import ru.killwolfvlad.workflows.core.types.WorkflowId
 import kotlin.reflect.KClass
 
+@OptIn(WorkflowsPerformance::class)
 class WorkflowsWorker(
     config: WorkflowsConfig,
     keyValueClient: KeyValueClient,

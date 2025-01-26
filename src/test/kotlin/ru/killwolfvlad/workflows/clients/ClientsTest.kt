@@ -2,12 +2,10 @@ package ru.killwolfvlad.workflows.clients
 
 import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.matchers.shouldBe
-import io.lettuce.core.ExperimentalLettuceCoroutinesApi
 import ru.killwolfvlad.workflows.WorkflowsDescribeSpec
 import ru.killwolfvlad.workflows.hgetallAsMap
 import kotlin.time.Duration.Companion.seconds
 
-@OptIn(ExperimentalLettuceCoroutinesApi::class)
 class ClientsTest : WorkflowsDescribeSpec({
     for (testClient in testClients) {
         val rawClient = testClient.rawClient

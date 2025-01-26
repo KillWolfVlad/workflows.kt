@@ -5,8 +5,10 @@ import eu.vendeli.rethis.commands.*
 import eu.vendeli.rethis.types.core.RType
 import eu.vendeli.rethis.types.core.toArg
 import io.ktor.util.collections.*
+import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 
+@OptIn(WorkflowsPerformance::class)
 class ReThisRedisClient(
     private val client: ReThis,
 ) : KeyValueClient {

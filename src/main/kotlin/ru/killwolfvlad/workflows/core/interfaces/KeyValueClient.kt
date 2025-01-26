@@ -1,8 +1,11 @@
 package ru.killwolfvlad.workflows.core.interfaces
 
+import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
+
 /**
  * An abstraction over key-value storage, e.g. Redis
  */
+@WorkflowsPerformance
 interface KeyValueClient {
     //region HASH
 

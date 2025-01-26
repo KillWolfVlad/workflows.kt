@@ -1,10 +1,11 @@
 package ru.killwolfvlad.workflows.core
 
+import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.coroutines.getWorkflowKey
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
-import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_CONTEXT_FIELD_KEY_PREFIX
 import kotlin.coroutines.coroutineContext
 
+@WorkflowsPerformance
 class WorkflowContext internal constructor(
     private val keyValueClient: KeyValueClient,
 ) {
@@ -45,4 +46,4 @@ class WorkflowContext internal constructor(
 }
 
 internal inline val String.workflowContextFieldKey: String
-    get() = "${WORKFLOW_CONTEXT_FIELD_KEY_PREFIX}:$this"
+    get() = "ctx:$this"

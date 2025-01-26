@@ -2,6 +2,7 @@ package ru.killwolfvlad.workflows.core.internal
 
 import kotlinx.coroutines.*
 import ru.killwolfvlad.workflows.core.WorkflowsConfig
+import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.interfaces.WorkflowsExceptionHandler
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_CLASS_NAME_FIELD_KEY
@@ -11,6 +12,7 @@ import ru.killwolfvlad.workflows.core.internal.extensions.workflowClass
 import ru.killwolfvlad.workflows.core.types.WorkflowId
 import ru.killwolfvlad.workflows.core.types.workflowKey
 
+@OptIn(WorkflowsPerformance::class)
 internal class WorkflowsScheduler(
     rootJob: Job,
     private val config: WorkflowsConfig,

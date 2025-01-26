@@ -9,8 +9,8 @@ import io.lettuce.core.ExperimentalLettuceCoroutinesApi
 import io.lettuce.core.RedisClient
 import io.lettuce.core.api.coroutines
 import io.lettuce.core.api.coroutines.RedisCoroutinesCommands
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import ru.killwolfvlad.workflows.clients.LettuceRedisClient
@@ -42,13 +42,15 @@ abstract class WorkflowsDescribeSpec(body: WorkflowsDescribeSpec.() -> Unit = {}
 
     private val lettuceRedisClient = RedisClient.create(redisConnectionString)
 
+    val rootJob = SupervisorJob()
+
     val testClients = listOf<TestClient>(
         object : TestClient {
             override val dbName = "Redis Standalone"
 
             override val rawClient = lettuceRedisClient.connect().coroutines()
 
-            override val keyValueClient = LettuceRedisClient(lettuceRedisClient)
+            override val keyValueClient = LettuceRedisClient(rootJob, lettuceRedisClient)
         },
         object : TestClient {
             override val dbName = "Redis Standalone"
@@ -62,8 +64,6 @@ abstract class WorkflowsDescribeSpec(body: WorkflowsDescribeSpec.() -> Unit = {}
             )
         },
     )
-
-    val mainJob = Job()
 
     val defaultWorkflowsClassManager = object : WorkflowsClassManager {
         override fun getInstance(workflowClass: KClass<out Workflow>): Workflow =
@@ -83,11 +83,12 @@ abstract class WorkflowsDescribeSpec(body: WorkflowsDescribeSpec.() -> Unit = {}
         heartbeatInterval = 15.seconds,
         lockTimeout = 1.minutes,
         fetchInterval = 2.minutes,
+        rootJob = rootJob,
     )
 
     init {
         afterEach {
-            mainJob.cancelAndJoin()
+            rootJob.cancelChildren()
         }
 
         body()

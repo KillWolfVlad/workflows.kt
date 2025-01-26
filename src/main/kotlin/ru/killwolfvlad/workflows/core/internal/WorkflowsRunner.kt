@@ -17,7 +17,7 @@ import ru.killwolfvlad.workflows.core.types.workflowKey
 import kotlin.reflect.KClass
 
 internal class WorkflowsRunner(
-    mainJob: Job,
+    rootJob: Job,
     private val activityContext: ActivityContext,
     private val config: WorkflowsConfig,
     private val keyValueClient: KeyValueClient,
@@ -26,7 +26,7 @@ internal class WorkflowsRunner(
     private val workflowsExceptionHandler: WorkflowsExceptionHandler,
 ) {
     private val coroutineScope = CoroutineScope(
-        Dispatchers.IO + CoroutineName(WorkflowsRunner::class.simpleName + "Coroutine") + mainJob,
+        rootJob + Dispatchers.IO + CoroutineName(WorkflowsRunner::class.simpleName + "Coroutine"),
     )
 
     private val workflowJobs = ConcurrentMap<WorkflowId, Job>()

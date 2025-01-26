@@ -16,6 +16,7 @@ import kotlinx.coroutines.reactive.awaitFirstOrNull
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 
 class LettuceRedisClient(
+    rootJob: Job,
     redisClient: RedisClient,
 ) : KeyValueClient {
     private val connection = redisClient.connect()
@@ -24,7 +25,7 @@ class LettuceRedisClient(
     private val commandsPubSub = connectionPubSub.reactive()
 
     private val coroutineScopePubSub = CoroutineScope(
-        Dispatchers.IO + CoroutineName(LettuceRedisClient::class.simpleName + "CoroutinePubSub"),
+        rootJob + Dispatchers.IO + CoroutineName(LettuceRedisClient::class.simpleName + "CoroutinePubSub"),
     )
 
     //region HASH

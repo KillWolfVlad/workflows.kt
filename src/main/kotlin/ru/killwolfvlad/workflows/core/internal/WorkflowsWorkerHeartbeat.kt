@@ -7,13 +7,13 @@ import ru.killwolfvlad.workflows.core.interfaces.WorkflowsExceptionHandler
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_WORKERS_KEY
 
 class WorkflowsWorkerHeartbeat(
-    mainJob: Job,
+    rootJob: Job,
     private val config: WorkflowsConfig,
     private val keyValueClient: KeyValueClient,
     private val workflowsExceptionHandler: WorkflowsExceptionHandler,
 ) {
     private val coroutineScope = CoroutineScope(
-        Dispatchers.IO + CoroutineName(WorkflowsWorkerHeartbeat::class.simpleName + "Coroutine") + mainJob,
+        rootJob + Dispatchers.IO + CoroutineName(WorkflowsWorkerHeartbeat::class.simpleName + "Coroutine"),
     )
 
     suspend fun init() {

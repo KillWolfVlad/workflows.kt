@@ -12,14 +12,14 @@ import ru.killwolfvlad.workflows.core.types.WorkflowId
 import ru.killwolfvlad.workflows.core.types.workflowKey
 
 internal class WorkflowsScheduler(
-    mainJob: Job,
+    rootJob: Job,
     private val config: WorkflowsConfig,
     private val keyValueClient: KeyValueClient,
     private val workflowsExceptionHandler: WorkflowsExceptionHandler,
     private val workflowsRunner: WorkflowsRunner,
 ) {
     private val coroutineScope = CoroutineScope(
-        Dispatchers.IO + CoroutineName(WorkflowsScheduler::class.simpleName + "Coroutine") + mainJob,
+        rootJob + Dispatchers.IO + CoroutineName(WorkflowsScheduler::class.simpleName + "Coroutine"),
     )
 
     private lateinit var fetchJob: Job

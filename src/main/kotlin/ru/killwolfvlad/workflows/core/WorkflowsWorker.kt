@@ -1,6 +1,5 @@
 package ru.killwolfvlad.workflows.core
 
-import kotlinx.coroutines.Job
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.interfaces.Workflow
 import ru.killwolfvlad.workflows.core.interfaces.WorkflowsClassManager
@@ -18,15 +17,13 @@ class WorkflowsWorker(
     workflowsClassManager: WorkflowsClassManager,
     workflowsExceptionHandler: WorkflowsExceptionHandler,
 ) {
-    private val mainJob = Job()
-
     private val workflowContext = WorkflowContext(keyValueClient)
 
     private val activityContext = ActivityContext(keyValueClient)
 
     private val workflowsRunner =
         WorkflowsRunner(
-            mainJob,
+            config.rootJob,
             activityContext,
             config,
             keyValueClient,
@@ -36,13 +33,13 @@ class WorkflowsWorker(
         )
 
     private val workflowsWorkerHeartbeat =
-        WorkflowsWorkerHeartbeat(mainJob, config, keyValueClient, workflowsExceptionHandler)
+        WorkflowsWorkerHeartbeat(config.rootJob, config, keyValueClient, workflowsExceptionHandler)
 
     private val workflowsSignalsBroker =
         WorkflowsSignalsBroker(keyValueClient, workflowsExceptionHandler, workflowsRunner)
 
     private val workflowsScheduler =
-        WorkflowsScheduler(mainJob, config, keyValueClient, workflowsExceptionHandler, workflowsRunner)
+        WorkflowsScheduler(config.rootJob, config, keyValueClient, workflowsExceptionHandler, workflowsRunner)
 
     suspend fun run(
         workflowId: WorkflowId,

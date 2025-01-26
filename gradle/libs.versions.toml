@@ -4,7 +4,7 @@ ktor = "3.0.3" # https://github.com/ktorio/ktor
 kotlinx-coroutines = "1.10.1" # https://github.com/Kotlin/kotlinx.coroutines
 kotlinx-datetime = "0.6.1" # https://github.com/Kotlin/kotlinx-datetime
 kotlinx-serialization = "1.8.0" # https://github.com/Kotlin/kotlinx.serialization
-rethis = "0.2.4" # https://github.com/vendelieu/re.this
+rethis = "0.2.7" # https://github.com/vendelieu/re.this
 lettuce = "6.5.2.RELEASE" # https://github.com/redis/lettuce
 kotest = "6.0.0.M1" # https://github.com/kotest/kotest
 mockk = "1.13.16" # https://github.com/mockk/mockk
@@ -24,7 +24,7 @@ kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 
 # redis
-rethis = { module = "eu.vendeli:re.this", version.ref = "rethis" }
+rethis = { module = "eu.vendeli:rethis", version.ref = "rethis" }
 lettuce = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 kotlinx-coroutines-reactive = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactive", version.ref = "kotlinx-coroutines" }
 

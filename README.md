@@ -18,3 +18,4 @@ Embedded Workflows As Code engine for Kotlin powered by Coroutines and Redis-lik
 
 - Durable timers for notifications or any other delayed jobs
 - Durable workflows in multi-instances application
+- Cron jobs (with waiting and not waiting completion)

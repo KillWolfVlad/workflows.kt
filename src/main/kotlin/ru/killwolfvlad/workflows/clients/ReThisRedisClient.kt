@@ -2,8 +2,9 @@ package ru.killwolfvlad.workflows.clients
 
 import eu.vendeli.rethis.ReThis
 import eu.vendeli.rethis.commands.*
+import eu.vendeli.rethis.types.core.RMap
 import eu.vendeli.rethis.types.core.RType
-import eu.vendeli.rethis.types.core.toArg
+import eu.vendeli.rethis.utils.unwrap
 import io.ktor.util.collections.*
 import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
@@ -17,16 +18,8 @@ class ReThisRedisClient(
     override suspend fun hGet(key: String, field: String): String? =
         client.hGet(key, field)
 
-    // TODO: use regular method, after fix
     override suspend fun hMGet(key: String, vararg fields: String): List<String?> =
-        //client.hMGet(key, *fields)
-        (client.execute(
-            listOf(
-                "HMGET",
-                key,
-                *fields
-            ).toArg()
-        ).ensureValue as List<RType>).map { it.ensureValue as String? }
+        client.hMGet(key, *fields)
 
     override suspend fun hSet(key: String, vararg fieldValues: Pair<String, String>) {
         client.hSet(key, *fieldValues)
@@ -59,22 +52,18 @@ class ReThisRedisClient(
                 hGet(it.first, it.second)
             }
         }.map {
-            it.ensureValue as String?
+            it.unwrap(String::class)
         }
 
-    // TODO: use pipeline, after fix
     @Suppress("UNCHECKED_CAST")
     override suspend fun pipelineHGetAll(vararg keys: String): List<Map<String, String>> =
-//        client.pipeline {
-//            keys.forEach {
-//                hGetAll(it)
-//            }
-//        }.map {
-//            (it.ensureValue as Map<RPrimitive, RType?>)
-//                .map { it.key.ensureValue as String to it.value?.ensureValue as String }.toMap()
-//        }
-        keys.map {
-            client.hGetAll(it) as Map<String, String>
+        client.pipeline {
+            keys.forEach {
+                hGetAll(it)
+            }
+        }.map {
+            (it.unwrap(RType::class) as RMap).value
+                .map { it.key.unwrap(String::class)!! to it.value?.unwrap(String::class)!! }.toMap()
         }
 
     //endregion
@@ -126,10 +115,3 @@ private suspend inline fun ReThis.fastEval(
 
     return result
 }
-
-private inline val RType.ensureValue: Any?
-    get() =
-        when (this) {
-            is RType.Error -> throw exception
-            else -> value
-        }

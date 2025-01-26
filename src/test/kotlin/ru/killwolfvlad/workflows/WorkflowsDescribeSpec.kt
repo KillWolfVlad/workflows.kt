@@ -86,10 +86,12 @@ abstract class WorkflowsDescribeSpec(body: WorkflowsDescribeSpec.() -> Unit = {}
     )
 
     init {
+        beforeEach {
+            clearAllMocks()
+        }
+
         afterEach {
             rootJob.cancelChildren()
-
-            clearAllMocks()
         }
 
         body()

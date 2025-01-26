@@ -6,6 +6,7 @@ import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.interfaces.Workflow
 import ru.killwolfvlad.workflows.core.types.WorkflowId
+import ru.killwolfvlad.workflows.core.types.workflowKey
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
@@ -16,7 +17,6 @@ data class WorkflowCoroutineContext internal constructor(
     val workflowId: WorkflowId,
     val workflowContext: WorkflowContext,
     val activityContext: ActivityContext,
-    internal val workflowKey: String, // TODO: remove workflowKey from context
     internal val keyValueClient: KeyValueClient,
 ) : AbstractCoroutineContextElement(WorkflowCoroutineContext) {
     companion object Key : CoroutineContext.Key<WorkflowCoroutineContext>
@@ -36,13 +36,13 @@ suspend inline fun CoroutineContext.getActivityContext(): ActivityContext =
     coroutineContext[WorkflowCoroutineContext]?.activityContext
         ?: throw NullPointerException("${WorkflowCoroutineContext::class.simpleName} must be in coroutineContext!")
 
-internal suspend inline fun CoroutineContext.getWorkflowKey(): String =
-    coroutineContext[WorkflowCoroutineContext]?.workflowKey
-        ?: throw NullPointerException("${WorkflowCoroutineContext::class.simpleName} must be in coroutineContext!")
-
 @OptIn(WorkflowsPerformance::class)
 internal suspend inline fun CoroutineContext.getKeyValueClient(): KeyValueClient =
     coroutineContext[WorkflowCoroutineContext]?.keyValueClient
+        ?: throw NullPointerException("${WorkflowCoroutineContext::class.simpleName} must be in coroutineContext!")
+
+internal suspend inline fun CoroutineContext.getWorkflowKey(): String =
+    coroutineContext[WorkflowCoroutineContext]?.workflowId?.workflowKey
         ?: throw NullPointerException("${WorkflowCoroutineContext::class.simpleName} must be in coroutineContext!")
 
 suspend inline fun Workflow.getWorkflowId(): WorkflowId =

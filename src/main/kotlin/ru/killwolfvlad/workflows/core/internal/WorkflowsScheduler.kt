@@ -49,7 +49,7 @@ internal class WorkflowsScheduler(
     private suspend inline fun fetchWorkflows() {
         val (locks, workers) = keyValueClient.pipelineHGetAll(WORKFLOW_LOCKS_KEY, WORKFLOW_WORKERS_KEY)
 
-        val workflowsToRun = locks.filter filterWorkflows@{
+        val workflowIdsToRun = locks.filter filterWorkflows@{
             if (workflowsRunner.contains(WorkflowId(it.key))) {
                 return@filterWorkflows false
             }
@@ -60,22 +60,19 @@ internal class WorkflowsScheduler(
 
             return@filterWorkflows !workers.contains(it.value)
         }.map {
-            object {
-                val workflowId = WorkflowId(it.key)
-                val workflowKey = workflowId.workflowKey
-            }
+            WorkflowId(it.key)
         }
 
-        if (workflowsToRun.isEmpty()) {
+        if (workflowIdsToRun.isEmpty()) {
             return
         }
 
         val runPayloads =
             keyValueClient.pipelineHGet(
-                *workflowsToRun.map { it.workflowKey to WORKFLOW_CLASS_NAME_FIELD_KEY }.toTypedArray()
-            ).zip(workflowsToRun) { a, b ->
+                *workflowIdsToRun.map { it.workflowKey to WORKFLOW_CLASS_NAME_FIELD_KEY }.toTypedArray()
+            ).zip(workflowIdsToRun) { a, b ->
                 object {
-                    val workflowId = b.workflowId
+                    val workflowId = b
                     val workflowClass = a?.workflowClass
                 }
             }

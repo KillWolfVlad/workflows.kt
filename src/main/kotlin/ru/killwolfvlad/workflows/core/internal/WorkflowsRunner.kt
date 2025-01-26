@@ -45,13 +45,11 @@ internal class WorkflowsRunner(
             return
         }
 
-        val workflowKey = workflowId.workflowKey
-
-        if (!acquireWorkflowLock(workflowId, workflowKey, initialContext, workflowClass)) {
+        if (!acquireWorkflowLock(workflowId, initialContext, workflowClass)) {
             return
         }
 
-        launchWorkflow(workflowId, workflowKey, workflowClass)
+        launchWorkflow(workflowId, workflowClass)
     }
 
     fun cancel(workflowId: WorkflowId) {
@@ -63,13 +61,12 @@ internal class WorkflowsRunner(
 
     private suspend inline fun acquireWorkflowLock(
         workflowId: WorkflowId,
-        workflowKey: String,
         initialContext: Map<String, String>,
         workflowClass: KClass<out Workflow>,
     ): Boolean =
         keyValueClient.acquireWorkflowLock(
             // keys
-            workflowKey = workflowKey,
+            workflowKey = workflowId.workflowKey,
             workflowLocksKey = WORKFLOW_LOCKS_KEY,
             workflowWorkersKey = WORKFLOW_WORKERS_KEY,
             // arguments
@@ -83,15 +80,14 @@ internal class WorkflowsRunner(
 
     private fun launchWorkflow(
         workflowId: WorkflowId,
-        workflowKey: String,
         workflowClass: KClass<out Workflow>,
     ) {
         workflowJobs[workflowId] = coroutineScope.launch(
-            WorkflowCoroutineContext(workflowId, workflowContext, activityContext, workflowKey, keyValueClient),
+            WorkflowCoroutineContext(workflowId, workflowContext, activityContext, keyValueClient),
             CoroutineStart.LAZY,
         ) workflow@{
             try {
-                val signal = keyValueClient.hGet(workflowKey, WorkflowSignal.FIELD_KEY)?.let {
+                val signal = keyValueClient.hGet(workflowId.workflowKey, WorkflowSignal.FIELD_KEY)?.let {
                     WorkflowSignal.valueOf(it)
                 }
 
@@ -113,7 +109,7 @@ internal class WorkflowsRunner(
             try {
                 keyValueClient.deleteWorkflow(
                     // keys
-                    workflowKey = workflowKey,
+                    workflowKey = workflowId.workflowKey,
                     workflowLocksKey = WORKFLOW_LOCKS_KEY,
                     // arguments
                     workflowId = workflowId,

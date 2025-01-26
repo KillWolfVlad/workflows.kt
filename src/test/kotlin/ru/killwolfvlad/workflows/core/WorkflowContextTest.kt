@@ -24,7 +24,6 @@ class WorkflowContextTest : WorkflowsDescribeSpec({
         workflowId,
         mockk<WorkflowContext>(),
         mockk<ActivityContext>(),
-        workflowId.workflowKey,
         mockk<KeyValueClient>(),
     )
 

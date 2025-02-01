@@ -14,6 +14,7 @@ import kotlinx.coroutines.reactive.awaitFirstOrNull
 import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 
+// TODO: delete Lettuce client
 @OptIn(WorkflowsPerformance::class, ExperimentalLettuceCoroutinesApi::class)
 class LettuceRedisClient(
     rootJob: Job,

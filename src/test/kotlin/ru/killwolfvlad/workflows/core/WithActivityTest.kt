@@ -7,17 +7,18 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
-import ru.killwolfvlad.workflows.WorkflowsDescribeSpec
 import ru.killwolfvlad.workflows.core.coroutines.WorkflowCoroutineContext
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.internal.enums.ActivityStatus
 import ru.killwolfvlad.workflows.core.internal.enums.WorkflowSignal
+import ru.killwolfvlad.workflows.core.types.ActivityCallback
 import ru.killwolfvlad.workflows.core.types.WorkflowId
 import ru.killwolfvlad.workflows.core.types.workflowKey
+import ru.killwolfvlad.workflows.test.WorkflowsDescribeSpec
 
 class WithActivityTest : WorkflowsDescribeSpec({
     val keyValueClientMock = mockk<KeyValueClient>()
-    val activityCallbackMock = mockk<suspend (Map<String, String?>, Map<String, String?>) -> Map<String, String>?>()
+    val activityCallbackMock = mockk<ActivityCallback>()
 
     val workflowId = WorkflowId("workflow1")
     val activityId = "activity1"
@@ -292,6 +293,66 @@ class WithActivityTest : WorkflowsDescribeSpec({
                     "act:activity1:status" to ActivityStatus.COMPLETED.toString(),
                     "ctx:field1" to "value1",
                     "ctx:field2" to "value2",
+                )
+            }
+        }
+    }
+
+    describe("when nested activities") {
+        val nestedActivityId = "activity2"
+
+        beforeEach {
+            coEvery {
+                keyValueClientMock.hMGet(
+                    workflowId.workflowKey,
+                    WorkflowSignal.FIELD_KEY,
+                    "act:activity1:status",
+                )
+            } returns listOf(null, null)
+
+            coEvery {
+                keyValueClientMock.hMGet(
+                    workflowId.workflowKey,
+                    WorkflowSignal.FIELD_KEY,
+                    "act:activity1:activity2:status",
+                )
+            } returns listOf(null, null)
+
+            coJustRun {
+                keyValueClientMock.hSet(
+                    workflowId.workflowKey,
+                    "act:activity1:status" to ActivityStatus.COMPLETED.toString(),
+                )
+            }
+
+            coJustRun {
+                keyValueClientMock.hSet(
+                    workflowId.workflowKey,
+                    "act:activity1:activity2:status" to ActivityStatus.COMPLETED.toString(),
+                )
+            }
+
+            coEvery {
+                activityCallbackMock(
+                    emptyMap(),
+                    emptyMap(),
+                )
+            } returns null
+
+            withContext(defaultCoroutineContext) {
+                withActivity(activityId) { workflowContextMap, activityContextMap ->
+                    withActivity(nestedActivityId, block = activityCallbackMock)
+
+                    null
+                }
+            }
+        }
+
+        it("must call activity callback") {
+            coVerify(exactly = 1) {
+                activityCallbackMock(
+                    emptyMap(),
+                    emptyMap(),
                 )
             }
         }

@@ -2,18 +2,17 @@ package ru.killwolfvlad.workflows.clients
 
 import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.matchers.shouldBe
-import ru.killwolfvlad.workflows.WorkflowsDescribeSpec
-import ru.killwolfvlad.workflows.hgetallAsMap
+import ru.killwolfvlad.workflows.test.WorkflowsDescribeSpec
 import kotlin.time.Duration.Companion.seconds
 
 class ClientsTest : WorkflowsDescribeSpec({
     for (testClient in testClients) {
-        val rawClient = testClient.rawClient
         val keyValueClient = testClient.keyValueClient
+        val testKeyValueClient = testClient.testKeyValueClient
 
         describe(testClient.name) {
             beforeEach {
-                rawClient.flushdb()
+                testKeyValueClient.flushDB()
             }
 
             describe("hGet") {
@@ -25,7 +24,7 @@ class ClientsTest : WorkflowsDescribeSpec({
 
                 describe("when field doesn't exists") {
                     beforeEach {
-                        rawClient.hset("key", mapOf("field2" to "value2"))
+                        testKeyValueClient.hSet("key", "field2" to "value2")
                     }
 
                     it("must return null") {
@@ -35,7 +34,7 @@ class ClientsTest : WorkflowsDescribeSpec({
 
                 describe("when field exists") {
                     beforeEach {
-                        rawClient.hset("key", mapOf("field1" to "value1", "field2" to "value2"))
+                        testKeyValueClient.hSet("key", "field1" to "value1", "field2" to "value2")
                     }
 
                     it("must return value") {
@@ -53,7 +52,7 @@ class ClientsTest : WorkflowsDescribeSpec({
 
                 describe("when fields doesn't exists") {
                     beforeEach {
-                        rawClient.hset("key", mapOf("field3" to "value3"))
+                        testKeyValueClient.hSet("key", "field3" to "value3")
                     }
 
                     it("must return nulls") {
@@ -63,7 +62,7 @@ class ClientsTest : WorkflowsDescribeSpec({
 
                 describe("when some fields exists") {
                     beforeEach {
-                        rawClient.hset("key", mapOf("field2" to "value2"))
+                        testKeyValueClient.hSet("key", "field2" to "value2")
                     }
 
                     it("must return values and nulls") {
@@ -73,7 +72,10 @@ class ClientsTest : WorkflowsDescribeSpec({
 
                 describe("when fields exists") {
                     beforeEach {
-                        rawClient.hset("key", mapOf("field1" to "value1", "field2" to "value2", "field3" to "value3"))
+                        testKeyValueClient.hSet(
+                            "key",
+                            "field1" to "value1", "field2" to "value2", "field3" to "value3",
+                        )
                     }
 
                     it("must return values") {
@@ -89,7 +91,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must set values") {
-                        rawClient.hgetallAsMap("key") shouldBe mapOf(
+                        testKeyValueClient.hGetAll("key") shouldBe mapOf(
                             "field1" to "value1",
                             "field2" to "value2",
                         )
@@ -107,7 +109,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must set values") {
-                            rawClient.hgetallAsMap("key") shouldBe mapOf(
+                            testKeyValueClient.hGetAll("key") shouldBe mapOf(
                                 "field1" to "value1",
                                 "field2" to "value2",
                                 "field3" to "value3",
@@ -121,7 +123,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must overwrite values") {
-                            rawClient.hgetallAsMap("key") shouldBe mapOf(
+                            testKeyValueClient.hGetAll("key") shouldBe mapOf(
                                 "field1" to "value11",
                                 "field2" to "value2",
                                 "field3" to "value3",
@@ -135,7 +137,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must overwrite values") {
-                            rawClient.hgetallAsMap("key") shouldBe mapOf(
+                            testKeyValueClient.hGetAll("key") shouldBe mapOf(
                                 "field1" to "value11",
                                 "field2" to "value22",
                             )
@@ -147,13 +149,13 @@ class ClientsTest : WorkflowsDescribeSpec({
             describe("hDel") {
                 describe("when key doesn't exists") {
                     beforeEach {
-                        rawClient.hset("key2", mapOf("field1" to "value1"))
+                        testKeyValueClient.hSet("key2", "field1" to "value1")
 
                         keyValueClient.hDel("key1", "field1", "field2")
                     }
 
                     it("must do nothing") {
-                        rawClient.hgetallAsMap("key2") shouldBe mapOf(
+                        testKeyValueClient.hGetAll("key2") shouldBe mapOf(
                             "field1" to "value1",
                         )
                     }
@@ -161,7 +163,10 @@ class ClientsTest : WorkflowsDescribeSpec({
 
                 describe("when key exists") {
                     beforeEach {
-                        rawClient.hset("key", mapOf("field1" to "value1", "field2" to "value2", "field3" to "value3"))
+                        testKeyValueClient.hSet(
+                            "key",
+                            "field1" to "value1", "field2" to "value2", "field3" to "value3",
+                        )
                     }
 
                     describe("when fields doesn't exist") {
@@ -170,7 +175,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must do nothing") {
-                            rawClient.hgetallAsMap("key") shouldBe mapOf(
+                            testKeyValueClient.hGetAll("key") shouldBe mapOf(
                                 "field1" to "value1",
                                 "field2" to "value2",
                                 "field3" to "value3"
@@ -184,9 +189,9 @@ class ClientsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must delete only existing fields") {
-                            rawClient.hgetallAsMap("key") shouldBe mapOf(
+                            testKeyValueClient.hGetAll("key") shouldBe mapOf(
                                 "field2" to "value2",
-                                "field3" to "value3"
+                                "field3" to "value3",
                             )
                         }
                     }
@@ -197,7 +202,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must delete fields") {
-                            rawClient.hgetallAsMap("key") shouldBe mapOf(
+                            testKeyValueClient.hGetAll("key") shouldBe mapOf(
                                 "field3" to "value3"
                             )
                         }
@@ -225,7 +230,7 @@ class ClientsTest : WorkflowsDescribeSpec({
 
             describe("pipelineHGet") {
                 beforeEach {
-                    rawClient.hset("key3", mapOf("field31" to "value31"))
+                    testKeyValueClient.hSet("key3", "field31" to "value31")
                 }
 
                 describe("when keys doesn't exists") {
@@ -239,8 +244,8 @@ class ClientsTest : WorkflowsDescribeSpec({
 
                 describe("when some keys exists") {
                     beforeEach {
-                        rawClient.hset("key1", mapOf("field11" to "value11", "field12" to "value12"))
-                        rawClient.hset("key3", mapOf("field31" to "value31"))
+                        testKeyValueClient.hSet("key1", "field11" to "value11", "field12" to "value12")
+                        testKeyValueClient.hSet("key3", "field31" to "value31")
                     }
 
                     it("must return values and nulls") {
@@ -253,9 +258,9 @@ class ClientsTest : WorkflowsDescribeSpec({
 
                 describe("when keys exists") {
                     beforeEach {
-                        rawClient.hset("key1", mapOf("field11" to "value11", "field12" to "value12"))
-                        rawClient.hset("key2", mapOf("field21" to "value21", "field22" to "value22"))
-                        rawClient.hset("key3", mapOf("field31" to "value31"))
+                        testKeyValueClient.hSet("key1", "field11" to "value11", "field12" to "value12")
+                        testKeyValueClient.hSet("key2", "field21" to "value21", "field22" to "value22")
+                        testKeyValueClient.hSet("key3", "field31" to "value31")
                     }
 
                     it("must return values and nulls") {
@@ -270,7 +275,7 @@ class ClientsTest : WorkflowsDescribeSpec({
             describe("pipelineHGetAll") {
                 describe("when keys doesn't exists") {
                     beforeEach {
-                        rawClient.hset("key3", mapOf("field31" to "value31"))
+                        testKeyValueClient.hSet("key3", "field31" to "value31")
                     }
 
                     it("must return empty maps") {
@@ -280,8 +285,8 @@ class ClientsTest : WorkflowsDescribeSpec({
 
                 describe("when some keys exists") {
                     beforeEach {
-                        rawClient.hset("key1", mapOf("field11" to "value11"))
-                        rawClient.hset("key3", mapOf("field31" to "value31"))
+                        testKeyValueClient.hSet("key1", "field11" to "value11")
+                        testKeyValueClient.hSet("key3", "field31" to "value31")
                     }
 
                     it("must return maps and empty maps") {
@@ -294,8 +299,8 @@ class ClientsTest : WorkflowsDescribeSpec({
 
                 describe("when keys exists") {
                     beforeEach {
-                        rawClient.hset("key1", mapOf("field11" to "value11"))
-                        rawClient.hset("key2", mapOf("field22" to "value22"))
+                        testKeyValueClient.hSet("key1", "field11" to "value11")
+                        testKeyValueClient.hSet("key2", "field22" to "value22")
                     }
 
                     it("must return empty maps") {
@@ -327,7 +332,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must invoke script") {
-                        rawClient.hgetallAsMap("key") shouldBe mapOf(
+                        testKeyValueClient.hGetAll("key") shouldBe mapOf(
                             "field1" to "value1",
                         )
                     }
@@ -354,7 +359,7 @@ class ClientsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must invoke script") {
-                        rawClient.hgetallAsMap("key") shouldBe mapOf(
+                        testKeyValueClient.hGetAll("key") shouldBe mapOf(
                             "field1" to "value1",
                         )
                     }
@@ -371,13 +376,13 @@ class ClientsTest : WorkflowsDescribeSpec({
                     beforeEach {
                         keyValueClient.eval<Unit>(scriptId, script, listOf("key"), "field1", "value1")
 
-                        rawClient.scriptFlush()
+                        testKeyValueClient.scriptFlush()
 
                         keyValueClient.eval<Unit>(scriptId, script, listOf("key"), "field2", "value2")
                     }
 
                     it("must invoke script") {
-                        rawClient.hgetallAsMap("key") shouldBe mapOf(
+                        testKeyValueClient.hGetAll("key") shouldBe mapOf(
                             "field1" to "value1",
                             "field2" to "value2",
                         )

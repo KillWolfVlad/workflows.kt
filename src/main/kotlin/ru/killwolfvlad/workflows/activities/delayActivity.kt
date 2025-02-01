@@ -19,14 +19,12 @@ suspend fun delayActivity(
     activityId,
     activityContextKeys = listOf(UNTIL_DATE_ACTIVITY_CONTEXT_KEY)
 ) { _, activityContextMap ->
-    val now = Clock.System.now()
-
     var untilDate = activityContextMap[UNTIL_DATE_ACTIVITY_CONTEXT_KEY]?.let {
         Instant.parse(it)
     }
 
     if (untilDate == null) {
-        untilDate = now + duration
+        untilDate = Clock.System.now() + duration
 
         coroutineContext.getActivityContext().set(mapOf(UNTIL_DATE_ACTIVITY_CONTEXT_KEY to untilDate.toString()))
     }

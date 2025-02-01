@@ -7,11 +7,11 @@ import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.withContext
-import ru.killwolfvlad.workflows.WorkflowsDescribeSpec
 import ru.killwolfvlad.workflows.core.coroutines.WorkflowCoroutineContext
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.types.WorkflowId
 import ru.killwolfvlad.workflows.core.types.workflowKey
+import ru.killwolfvlad.workflows.test.WorkflowsDescribeSpec
 
 class WorkflowContextTest : WorkflowsDescribeSpec({
     val keyValueClientMock = mockk<KeyValueClient>()

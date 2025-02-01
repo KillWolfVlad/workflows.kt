@@ -3,24 +3,22 @@ package ru.killwolfvlad.workflows.core.internal
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.longs.shouldBeInRange
 import io.kotest.matchers.shouldBe
-import kotlinx.coroutines.flow.toList
-import ru.killwolfvlad.workflows.WorkflowsDescribeSpec
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_CLASS_NAME_FIELD_KEY
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_LOCKS_KEY
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_WORKERS_KEY
 import ru.killwolfvlad.workflows.core.internal.extensions.workflowClassName
 import ru.killwolfvlad.workflows.core.types.WorkflowId
 import ru.killwolfvlad.workflows.core.types.workflowKey
-import ru.killwolfvlad.workflows.hgetallAsMap
+import ru.killwolfvlad.workflows.test.WorkflowsDescribeSpec
 
 class LuaScriptsTest : WorkflowsDescribeSpec({
     for (testClient in testClients) {
-        val rawClient = testClient.rawClient
         val keyValueClient = testClient.keyValueClient
+        val testKeyValueClient = testClient.testKeyValueClient
 
         describe(testClient.name) {
             beforeEach {
-                rawClient.flushdb()
+                testKeyValueClient.flushDB()
             }
 
             describe("heartbeat") {
@@ -34,11 +32,12 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must set heartbeat") {
-                        rawClient.hget(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId) shouldBe "OK"
+                        testKeyValueClient.hGet(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId) shouldBe "OK"
                     }
 
                     it("must update heartbeat ttl") {
-                        val ttl = rawClient.hpttl(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId).first()
+                        val ttl =
+                            testKeyValueClient.hPTTL(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId).first()
 
                         ttl shouldBeInRange 0L..defaultWorkflowsConfig.lockTimeout.inWholeMilliseconds
                     }
@@ -46,7 +45,7 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
 
                 describe("when heartbeat exists") {
                     beforeEach {
-                        rawClient.hset(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId, "OK")
+                        testKeyValueClient.hSet(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId to "OK")
 
                         keyValueClient.heartbeat(
                             WORKFLOW_WORKERS_KEY,
@@ -56,11 +55,12 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must set heartbeat") {
-                        rawClient.hget(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId) shouldBe "OK"
+                        testKeyValueClient.hGet(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId) shouldBe "OK"
                     }
 
                     it("must update heartbeat ttl") {
-                        val ttl = rawClient.hpttl(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId).first()
+                        val ttl =
+                            testKeyValueClient.hPTTL(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId).first()
 
                         ttl shouldBeInRange 0L..defaultWorkflowsConfig.lockTimeout.inWholeMilliseconds
                     }
@@ -96,7 +96,7 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must set workflow") {
-                        rawClient.hgetallAsMap(currentWorkflowId.workflowKey) shouldBe mapOf(
+                        testKeyValueClient.hGetAll(currentWorkflowId.workflowKey) shouldBe mapOf(
                             WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
                             "field1" to "value1",
                             "field2" to "value2",
@@ -104,18 +104,17 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must set lock") {
-                        rawClient.hget(WORKFLOW_LOCKS_KEY, currentWorkflowId.value) shouldBe currentWorkerId
+                        testKeyValueClient.hGet(WORKFLOW_LOCKS_KEY, currentWorkflowId.value) shouldBe currentWorkerId
                     }
                 }
 
                 describe("when workflow exists") {
                     beforeEach {
-                        rawClient.hset(
-                            currentWorkflowId.workflowKey, mapOf(
-                                WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
-                                "field1" to "value1",
-                                "field2" to "value2",
-                            )
+                        testKeyValueClient.hSet(
+                            currentWorkflowId.workflowKey,
+                            WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
+                            "field1" to "value1",
+                            "field2" to "value2",
                         )
                     }
 
@@ -123,7 +122,10 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                         var result: Long? = null
 
                         beforeEach {
-                            rawClient.hset(WORKFLOW_LOCKS_KEY, mapOf(currentWorkflowId.value to currentWorkerId))
+                            testKeyValueClient.hSet(
+                                WORKFLOW_LOCKS_KEY,
+                                currentWorkflowId.value to currentWorkerId,
+                            )
 
                             result = keyValueClient.acquireWorkflowLock(
                                 // keys
@@ -145,7 +147,7 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must don't change workflow") {
-                            rawClient.hgetallAsMap(currentWorkflowId.workflowKey) shouldBe mapOf(
+                            testKeyValueClient.hGetAll(currentWorkflowId.workflowKey) shouldBe mapOf(
                                 WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
                                 "field1" to "value1",
                                 "field2" to "value2",
@@ -153,13 +155,16 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must don't change lock") {
-                            rawClient.hget(WORKFLOW_LOCKS_KEY, currentWorkflowId.value) shouldBe currentWorkerId
+                            testKeyValueClient.hGet(
+                                WORKFLOW_LOCKS_KEY,
+                                currentWorkflowId.value
+                            ) shouldBe currentWorkerId
                         }
                     }
 
                     describe("when lock acquired by other worker") {
                         beforeEach {
-                            rawClient.hset(WORKFLOW_LOCKS_KEY, mapOf(currentWorkflowId.value to otherWorkerId))
+                            testKeyValueClient.hSet(WORKFLOW_LOCKS_KEY, currentWorkflowId.value to otherWorkerId)
                         }
 
                         describe("when other worker doesn't exists") {
@@ -186,7 +191,7 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                             }
 
                             it("must don't change workflow") {
-                                rawClient.hgetallAsMap(currentWorkflowId.workflowKey) shouldBe mapOf(
+                                testKeyValueClient.hGetAll(currentWorkflowId.workflowKey) shouldBe mapOf(
                                     WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
                                     "field1" to "value1",
                                     "field2" to "value2",
@@ -194,7 +199,10 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                             }
 
                             it("must change lock to current worker") {
-                                rawClient.hget(WORKFLOW_LOCKS_KEY, currentWorkflowId.value) shouldBe currentWorkerId
+                                testKeyValueClient.hGet(
+                                    WORKFLOW_LOCKS_KEY,
+                                    currentWorkflowId.value
+                                ) shouldBe currentWorkerId
                             }
                         }
 
@@ -202,7 +210,7 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                             var result: Long? = null
 
                             beforeEach {
-                                rawClient.hset(WORKFLOW_WORKERS_KEY, otherWorkerId, "OK")
+                                testKeyValueClient.hSet(WORKFLOW_WORKERS_KEY, otherWorkerId to "OK")
 
                                 result = keyValueClient.acquireWorkflowLock(
                                     // keys
@@ -224,7 +232,7 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                             }
 
                             it("must don't change workflow") {
-                                rawClient.hgetallAsMap(currentWorkflowId.workflowKey) shouldBe mapOf(
+                                testKeyValueClient.hGetAll(currentWorkflowId.workflowKey) shouldBe mapOf(
                                     WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
                                     "field1" to "value1",
                                     "field2" to "value2",
@@ -232,7 +240,10 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                             }
 
                             it("must don't change lock") {
-                                rawClient.hget(WORKFLOW_LOCKS_KEY, currentWorkflowId.value) shouldBe otherWorkerId
+                                testKeyValueClient.hGet(
+                                    WORKFLOW_LOCKS_KEY,
+                                    currentWorkflowId.value
+                                ) shouldBe otherWorkerId
                             }
                         }
                     }
@@ -273,7 +284,7 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must don't change other workflows") {
-                        rawClient.hgetallAsMap(otherWorkflowId.workflowKey) shouldBe mapOf(
+                        testKeyValueClient.hGetAll(otherWorkflowId.workflowKey) shouldBe mapOf(
                             WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
                             "field1" to "value1",
                             "field2" to "value2",
@@ -281,7 +292,7 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must don't change other locks") {
-                        rawClient.hget(WORKFLOW_LOCKS_KEY, otherWorkflowId.value) shouldBe otherWorkerId
+                        testKeyValueClient.hGet(WORKFLOW_LOCKS_KEY, otherWorkflowId.value) shouldBe otherWorkerId
                     }
                 }
 
@@ -317,15 +328,15 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must delete workflow") {
-                        rawClient.exists(currentWorkflowId.workflowKey) shouldBe 0L
+                        testKeyValueClient.exists(currentWorkflowId.workflowKey) shouldBe 0L
                     }
 
                     it("must delete lock") {
-                        rawClient.hexists(WORKFLOW_LOCKS_KEY, currentWorkflowId.value) shouldBe false
+                        testKeyValueClient.hExists(WORKFLOW_LOCKS_KEY, currentWorkflowId.value) shouldBe false
                     }
 
                     it("must don't change other workflows") {
-                        rawClient.hgetallAsMap(otherWorkflowId.workflowKey) shouldBe mapOf(
+                        testKeyValueClient.hGetAll(otherWorkflowId.workflowKey) shouldBe mapOf(
                             WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
                             "field1" to "value1",
                             "field2" to "value2",
@@ -333,7 +344,7 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must don't change other locks") {
-                        rawClient.hget(WORKFLOW_LOCKS_KEY, otherWorkflowId.value) shouldBe otherWorkerId
+                        testKeyValueClient.hGet(WORKFLOW_LOCKS_KEY, otherWorkflowId.value) shouldBe otherWorkerId
                     }
                 }
             }
@@ -345,13 +356,13 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                     }
 
                     it("must do nothing") {
-                        rawClient.keys("*").toList() shouldHaveSize 0
+                        testKeyValueClient.keys("*").toList() shouldHaveSize 0
                     }
                 }
 
                 describe("when key exists") {
                     beforeEach {
-                        rawClient.hset("key", mapOf("field1" to "value1", "field2" to "value2"))
+                        testKeyValueClient.hSet("key", "field1" to "value1", "field2" to "value2")
                     }
 
                     describe("when fields doesn't exists") {
@@ -360,7 +371,7 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must add values") {
-                            rawClient.hgetallAsMap("key") shouldBe mapOf(
+                            testKeyValueClient.hGetAll("key") shouldBe mapOf(
                                 "field1" to "value1",
                                 "field2" to "value2",
                                 "field3" to "value3",
@@ -375,7 +386,7 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must add and overwrite values") {
-                            rawClient.hgetallAsMap("key") shouldBe mapOf(
+                            testKeyValueClient.hGetAll("key") shouldBe mapOf(
                                 "field1" to "value11",
                                 "field2" to "value2",
                                 "field4" to "value4",
@@ -389,7 +400,7 @@ class LuaScriptsTest : WorkflowsDescribeSpec({
                         }
 
                         it("must overwrite values") {
-                            rawClient.hgetallAsMap("key") shouldBe mapOf(
+                            testKeyValueClient.hGetAll("key") shouldBe mapOf(
                                 "field1" to "value11",
                                 "field2" to "value22",
                             )

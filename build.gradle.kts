@@ -17,12 +17,14 @@ dependencies {
 
     implementation(libs.bundles.kotlinx)
 
-    compileOnly(libs.bundles.redis)
+    api(libs.bundles.redis)
     testImplementation(libs.bundles.redis)
 
     testImplementation(kotlin("reflect"))
 
     testImplementation(libs.bundles.kotest)
+
+    testImplementation(libs.bundles.jedis)
 
     testImplementation(libs.bundles.mockk)
 

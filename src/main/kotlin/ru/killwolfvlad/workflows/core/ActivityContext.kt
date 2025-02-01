@@ -11,20 +11,20 @@ import kotlin.coroutines.coroutineContext
 class ActivityContext internal constructor(
     private val keyValueClient: KeyValueClient,
 ) {
-    suspend fun get(key: String): String? =
-        keyValueClient.hGet(coroutineContext.getWorkflowKey(), key.getActivityContextFieldKey())
+    suspend fun get(key: String): String? = keyValueClient.hGet(coroutineContext.getWorkflowKey(), key.getActivityContextFieldKey())
 
     suspend fun get(vararg keys: String): Map<String, String?> {
         if (keys.isEmpty()) {
             return emptyMap()
         }
 
-        return keyValueClient.hMGet(
-            coroutineContext.getWorkflowKey(),
-            *keys.map { it.getActivityContextFieldKey() }.toTypedArray(),
-        ).zip(keys) { a, b ->
-            b to a
-        }.toMap()
+        return keyValueClient
+            .hMGet(
+                coroutineContext.getWorkflowKey(),
+                *keys.map { it.getActivityContextFieldKey() }.toTypedArray(),
+            ).zip(keys) { a, b ->
+                b to a
+            }.toMap()
     }
 
     suspend fun set(context: Map<String, String>) {
@@ -45,7 +45,7 @@ class ActivityContext internal constructor(
 
         keyValueClient.hDel(
             coroutineContext.getWorkflowKey(),
-            *keys.map { it.getActivityContextFieldKey() }.toTypedArray()
+            *keys.map { it.getActivityContextFieldKey() }.toTypedArray(),
         )
     }
 }

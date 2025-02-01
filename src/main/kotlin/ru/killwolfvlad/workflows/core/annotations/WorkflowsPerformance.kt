@@ -20,4 +20,4 @@ package ru.killwolfvlad.workflows.core.annotations
     AnnotationTarget.PROPERTY_SETTER,
     AnnotationTarget.TYPEALIAS,
 )
-annotation class WorkflowsPerformance()
+annotation class WorkflowsPerformance

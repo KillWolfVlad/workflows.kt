@@ -2,8 +2,9 @@ package ru.killwolfvlad.workflows.test
 
 import eu.vendeli.rethis.ReThis
 import io.kotest.core.spec.style.DescribeSpec
-import io.ktor.http.*
-import io.ktor.util.logging.*
+import io.ktor.http.Url
+import io.ktor.util.logging.KtorSimpleLogger
+import io.ktor.util.logging.error
 import io.lettuce.core.RedisClient
 import io.mockk.clearAllMocks
 import kotlinx.coroutines.SupervisorJob
@@ -21,53 +22,59 @@ import kotlin.reflect.full.primaryConstructor
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-abstract class WorkflowsDescribeSpec(body: WorkflowsDescribeSpec.() -> Unit = {}) : DescribeSpec() {
+abstract class WorkflowsDescribeSpec(
+    body: WorkflowsDescribeSpec.() -> Unit = {},
+) : DescribeSpec() {
     private val redisConnectionString = "redis://localhost:6379"
     private val jedis = Jedis(redisConnectionString)
 
     val rootJob = SupervisorJob()
 
-    val testClients = listOf<TestClient>(
-        object : TestClient {
-            override val dbName = "Redis Standalone"
+    val testClients =
+        listOf<TestClient>(
+            object : TestClient {
+                override val dbName = "Redis Standalone"
 
-            override val testKeyValueClient = JedisTestRedisClient(jedis)
+                override val testKeyValueClient = JedisTestRedisClient(jedis)
 
-            override val keyValueClient = LettuceRedisClient(rootJob, RedisClient.create(redisConnectionString))
-        },
-        object : TestClient {
-            override val dbName = "Redis Standalone"
+                override val keyValueClient = LettuceRedisClient(rootJob, RedisClient.create(redisConnectionString))
+            },
+            object : TestClient {
+                override val dbName = "Redis Standalone"
 
-            override val testKeyValueClient = JedisTestRedisClient(jedis)
+                override val testKeyValueClient = JedisTestRedisClient(jedis)
 
-            override val keyValueClient = ReThisRedisClient(
-                Url(redisConnectionString).let {
-                    ReThis(it.host, it.port)
-                }
-            )
-        },
-    )
+                override val keyValueClient =
+                    ReThisRedisClient(
+                        Url(redisConnectionString).let {
+                            ReThis(it.host, it.port)
+                        },
+                    )
+            },
+        )
 
-    val defaultWorkflowsClassManager = object : WorkflowsClassManager {
-        override fun getInstance(workflowClass: KClass<out Workflow>): Workflow =
-            workflowClass.primaryConstructor!!.call()
-    }
-
-    val defaultWorkflowsExceptionHandler = object : WorkflowsExceptionHandler {
-        private val logger = KtorSimpleLogger("WorkflowsExceptionHandler")
-
-        override suspend fun handle(exception: Exception) {
-            logger.error(exception)
+    val defaultWorkflowsClassManager =
+        object : WorkflowsClassManager {
+            override fun getInstance(workflowClass: KClass<out Workflow>): Workflow = workflowClass.primaryConstructor!!.call()
         }
-    }
 
-    val defaultWorkflowsConfig = WorkflowsConfig(
-        workerId = "test-worker-1",
-        heartbeatInterval = 15.seconds,
-        lockTimeout = 1.minutes,
-        fetchInterval = 2.minutes,
-        rootJob = rootJob,
-    )
+    val defaultWorkflowsExceptionHandler =
+        object : WorkflowsExceptionHandler {
+            private val logger = KtorSimpleLogger("WorkflowsExceptionHandler")
+
+            override suspend fun handle(exception: Exception) {
+                logger.error(exception)
+            }
+        }
+
+    val defaultWorkflowsConfig =
+        WorkflowsConfig(
+            workerId = "test-worker-1",
+            heartbeatInterval = 15.seconds,
+            lockTimeout = 1.minutes,
+            fetchInterval = 2.minutes,
+            rootJob = rootJob,
+        )
 
     init {
         beforeEach {

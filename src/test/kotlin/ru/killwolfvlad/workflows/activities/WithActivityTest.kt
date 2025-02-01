@@ -10,70 +10,71 @@ import ru.killwolfvlad.workflows.test.WorkflowsDescribeSpec
 import ru.killwolfvlad.workflows.core.types.ActivityCallback as CoreActivityCallback
 import ru.killwolfvlad.workflows.core.withActivity as coreWithActivity
 
-class WithActivityTest : WorkflowsDescribeSpec({
-    mockkStatic(::coreWithActivity)
+class WithActivityTest :
+    WorkflowsDescribeSpec({
+        mockkStatic(::coreWithActivity)
 
-    val activityId = "activity1"
+        val activityId = "activity1"
 
-    val activityCallbackMock = mockk<ActivityCallback>()
+        val activityCallbackMock = mockk<ActivityCallback>()
 
-    describe("when activity don't has workflow context keys") {
-        beforeEach {
-            coEvery { coreWithActivity(activityId, emptyList(), emptyList(), any()) } coAnswers {
-                val block = arg<CoreActivityCallback>(3)
+        describe("when activity don't has workflow context keys") {
+            beforeEach {
+                coEvery { coreWithActivity(activityId, emptyList(), emptyList(), any()) } coAnswers {
+                    val block = arg<CoreActivityCallback>(3)
 
-                block(emptyMap(), emptyMap())
+                    block(emptyMap(), emptyMap())
 
-                Unit
+                    Unit
+                }
+
+                coEvery { activityCallbackMock(any()) } returns null
+
+                withActivity(activityId, block = activityCallbackMock)
             }
 
-            coEvery { activityCallbackMock(any()) } returns null
-
-            withActivity(activityId, block = activityCallbackMock)
+            it("must call activity callback with empty workflow context map") {
+                coVerify(exactly = 1) { activityCallbackMock(emptyMap()) }
+            }
         }
 
-        it("must call activity callback with empty workflow context map") {
-            coVerify(exactly = 1) { activityCallbackMock(emptyMap()) }
-        }
-    }
+        describe("when activity has workflow context keys") {
+            beforeEach {
+                coEvery { coreWithActivity(activityId, listOf("field1", "field2"), emptyList(), any()) } coAnswers {
+                    val block = arg<CoreActivityCallback>(3)
 
-    describe("when activity has workflow context keys") {
-        beforeEach {
-            coEvery { coreWithActivity(activityId, listOf("field1", "field2"), emptyList(), any()) } coAnswers {
-                val block = arg<CoreActivityCallback>(3)
+                    block(mapOf("field1" to "value1", "field2" to "value2"), emptyMap())
 
-                block(mapOf("field1" to "value1", "field2" to "value2"), emptyMap())
+                    Unit
+                }
 
-                Unit
+                coEvery { activityCallbackMock(any()) } returns null
+
+                withActivity(activityId, workflowContextKeys = listOf("field1", "field2"), block = activityCallbackMock)
             }
 
-            coEvery { activityCallbackMock(any()) } returns null
-
-            withActivity(activityId, workflowContextKeys = listOf("field1", "field2"), block = activityCallbackMock)
+            it("must call activity callback with workflow context map") {
+                coVerify(exactly = 1) { activityCallbackMock(mapOf("field1" to "value1", "field2" to "value2")) }
+            }
         }
 
-        it("must call activity callback with workflow context map") {
-            coVerify(exactly = 1) { activityCallbackMock(mapOf("field1" to "value1", "field2" to "value2")) }
-        }
-    }
+        describe("when activity callback returns workflow context") {
+            var result: Map<String, String>? = null
 
-    describe("when activity callback returns workflow context") {
-        var result: Map<String, String>? = null
+            beforeEach {
+                coEvery { coreWithActivity(activityId, listOf("field1", "field2"), emptyList(), any()) } coAnswers {
+                    val block = arg<CoreActivityCallback>(3)
 
-        beforeEach {
-            coEvery { coreWithActivity(activityId, listOf("field1", "field2"), emptyList(), any()) } coAnswers {
-                val block = arg<CoreActivityCallback>(3)
+                    result = block(mapOf("field1" to "value1", "field2" to "value2"), emptyMap())
+                }
 
-                result = block(mapOf("field1" to "value1", "field2" to "value2"), emptyMap())
+                coEvery { activityCallbackMock(any()) } returns mapOf("field1" to "value1", "field2" to "value2")
+
+                withActivity(activityId, workflowContextKeys = listOf("field1", "field2"), block = activityCallbackMock)
             }
 
-            coEvery { activityCallbackMock(any()) } returns mapOf("field1" to "value1", "field2" to "value2")
-
-            withActivity(activityId, workflowContextKeys = listOf("field1", "field2"), block = activityCallbackMock)
+            it("must return workflow context") {
+                result shouldBe mapOf("field1" to "value1", "field2" to "value2")
+            }
         }
-
-        it("must return workflow context") {
-            result shouldBe mapOf("field1" to "value1", "field2" to "value2")
-        }
-    }
-})
+    })

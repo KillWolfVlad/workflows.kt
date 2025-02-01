@@ -1,6 +1,14 @@
 package ru.killwolfvlad.workflows.core.internal
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import ru.killwolfvlad.workflows.core.WorkflowsConfig
 import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
@@ -20,71 +28,77 @@ internal class WorkflowsScheduler(
     private val workflowsExceptionHandler: WorkflowsExceptionHandler,
     private val workflowsRunner: WorkflowsRunner,
 ) {
-    private val coroutineScope = CoroutineScope(
-        rootJob + Dispatchers.IO + CoroutineName(WorkflowsScheduler::class.simpleName + "Coroutine"),
-    )
+    private val coroutineScope =
+        CoroutineScope(
+            rootJob + Dispatchers.IO + CoroutineName(WorkflowsScheduler::class.simpleName + "Coroutine"),
+        )
 
     private lateinit var fetchJob: Job
 
     suspend fun init() {
         fetchWorkflows()
 
-        fetchJob = coroutineScope.launch {
-            delay(config.fetchInterval)
+        fetchJob =
+            coroutineScope.launch {
+                delay(config.fetchInterval)
 
-            while (true) {
-                try {
-                    fetchWorkflows()
-                } catch (_: CancellationException) {
-                    // skip cancellation exception
-                } catch (exception: Exception) {
-                    runCatching {
-                        workflowsExceptionHandler.handle(exception)
+                while (true) {
+                    try {
+                        fetchWorkflows()
+                    } catch (_: CancellationException) {
+                        // skip cancellation exception
+                    } catch (exception: Exception) {
+                        runCatching {
+                            workflowsExceptionHandler.handle(exception)
+                        }
                     }
                 }
             }
-        }
     }
 
     private suspend inline fun fetchWorkflows() {
         val (locks, workers) = keyValueClient.pipelineHGetAll(WORKFLOW_LOCKS_KEY, WORKFLOW_WORKERS_KEY)
 
-        val workflowIdsToRun = locks.filter filterWorkflows@{
-            if (workflowsRunner.contains(WorkflowId(it.key))) {
-                return@filterWorkflows false
-            }
+        val workflowIdsToRun =
+            locks
+                .filter filterWorkflows@{
+                    if (workflowsRunner.contains(WorkflowId(it.key))) {
+                        return@filterWorkflows false
+                    }
 
-            if (it.value == config.workerId) {
-                return@filterWorkflows true
-            }
+                    if (it.value == config.workerId) {
+                        return@filterWorkflows true
+                    }
 
-            return@filterWorkflows !workers.contains(it.value)
-        }.map {
-            WorkflowId(it.key)
-        }
+                    return@filterWorkflows !workers.contains(it.value)
+                }.map {
+                    WorkflowId(it.key)
+                }
 
         if (workflowIdsToRun.isEmpty()) {
             return
         }
 
         val runPayloads =
-            keyValueClient.pipelineHGet(
-                *workflowIdsToRun.map { it.workflowKey to WORKFLOW_CLASS_NAME_FIELD_KEY }.toTypedArray()
-            ).zip(workflowIdsToRun) { a, b ->
-                object {
-                    val workflowId = b
-                    val workflowClass = a?.workflowClass
-                }
-            }
-
-        runPayloads.map { runPayload ->
-            coroutineScope.async run@{
-                if (runPayload.workflowClass == null) {
-                    return@run
+            keyValueClient
+                .pipelineHGet(
+                    *workflowIdsToRun.map { it.workflowKey to WORKFLOW_CLASS_NAME_FIELD_KEY }.toTypedArray(),
+                ).zip(workflowIdsToRun) { a, b ->
+                    object {
+                        val workflowId = b
+                        val workflowClass = a?.workflowClass
+                    }
                 }
 
-                workflowsRunner.run(runPayload.workflowId, emptyMap(), runPayload.workflowClass)
-            }
-        }.awaitAll()
+        runPayloads
+            .map { runPayload ->
+                coroutineScope.async run@{
+                    if (runPayload.workflowClass == null) {
+                        return@run
+                    }
+
+                    workflowsRunner.run(runPayload.workflowId, emptyMap(), runPayload.workflowClass)
+                }
+            }.awaitAll()
     }
 }

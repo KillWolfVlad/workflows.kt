@@ -1,11 +1,19 @@
 package ru.killwolfvlad.workflows.clients
 
 import eu.vendeli.rethis.ReThis
-import eu.vendeli.rethis.commands.*
+import eu.vendeli.rethis.commands.evalSha
+import eu.vendeli.rethis.commands.hDel
+import eu.vendeli.rethis.commands.hGet
+import eu.vendeli.rethis.commands.hGetAll
+import eu.vendeli.rethis.commands.hMGet
+import eu.vendeli.rethis.commands.hSet
+import eu.vendeli.rethis.commands.publish
+import eu.vendeli.rethis.commands.scriptLoad
+import eu.vendeli.rethis.commands.subscribe
 import eu.vendeli.rethis.types.core.RMap
 import eu.vendeli.rethis.types.core.RType
 import eu.vendeli.rethis.utils.unwrap
-import io.ktor.util.collections.*
+import io.ktor.util.collections.ConcurrentMap
 import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 
@@ -15,17 +23,27 @@ class ReThisRedisClient(
 ) : KeyValueClient {
     //region HASH
 
-    override suspend fun hGet(key: String, field: String): String? =
-        client.hGet(key, field)
+    override suspend fun hGet(
+        key: String,
+        field: String,
+    ): String? = client.hGet(key, field)
 
-    override suspend fun hMGet(key: String, vararg fields: String): List<String?> =
-        client.hMGet(key, *fields)
+    override suspend fun hMGet(
+        key: String,
+        vararg fields: String,
+    ): List<String?> = client.hMGet(key, *fields)
 
-    override suspend fun hSet(key: String, vararg fieldValues: Pair<String, String>) {
+    override suspend fun hSet(
+        key: String,
+        vararg fieldValues: Pair<String, String>,
+    ) {
         client.hSet(key, *fieldValues)
     }
 
-    override suspend fun hDel(key: String, vararg fields: String) {
+    override suspend fun hDel(
+        key: String,
+        vararg fields: String,
+    ) {
         client.hDel(key, *fields)
     }
 
@@ -33,38 +51,47 @@ class ReThisRedisClient(
 
     //region PUB/SUB
 
-    override suspend fun publish(channel: String, message: String) {
+    override suspend fun publish(
+        channel: String,
+        message: String,
+    ) {
         client.publish(channel, message)
     }
 
-    override suspend fun subscribe(channel: String, handler: suspend (message: String) -> Unit) =
-        client.subscribe(channel) { messageClient, message ->
-            handler(message)
-        }
+    override suspend fun subscribe(
+        channel: String,
+        handler: suspend (message: String) -> Unit,
+    ) = client.subscribe(channel) { messageClient, message ->
+        handler(message)
+    }
 
     //endregion
 
     //region PIPELINES
 
     override suspend fun pipelineHGet(vararg keyFields: Pair<String, String>): List<String?> =
-        client.pipeline {
-            keyFields.forEach {
-                hGet(it.first, it.second)
+        client
+            .pipeline {
+                keyFields.forEach {
+                    hGet(it.first, it.second)
+                }
+            }.map {
+                it.unwrap(String::class)
             }
-        }.map {
-            it.unwrap(String::class)
-        }
 
     @Suppress("UNCHECKED_CAST")
     override suspend fun pipelineHGetAll(vararg keys: String): List<Map<String, String>> =
-        client.pipeline {
-            keys.forEach {
-                hGetAll(it)
+        client
+            .pipeline {
+                keys.forEach {
+                    hGetAll(it)
+                }
+            }.map {
+                (it.unwrap(RType::class) as RMap)
+                    .value
+                    .map { it.key.unwrap(String::class)!! to it.value?.unwrap(String::class)!! }
+                    .toMap()
             }
-        }.map {
-            (it.unwrap(RType::class) as RMap).value
-                .map { it.key.unwrap(String::class)!! to it.value?.unwrap(String::class)!! }.toMap()
-        }
 
     //endregion
 

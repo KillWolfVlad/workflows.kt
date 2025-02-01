@@ -1,6 +1,12 @@
 package ru.killwolfvlad.workflows.activities
 
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coJustRun
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.mockkStatic
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -17,83 +23,85 @@ import ru.killwolfvlad.workflows.test.WorkflowsDescribeSpec
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
-class DelayActivityTest : WorkflowsDescribeSpec({
-    val now = Instant.parse("2025-01-01T00:00:00Z")
+class DelayActivityTest :
+    WorkflowsDescribeSpec({
+        val now = Instant.parse("2025-01-01T00:00:00Z")
 
-    mockkObject(Clock.System)
-    mockkStatic("kotlinx.coroutines.DelayKt")
+        mockkObject(Clock.System)
+        mockkStatic("kotlinx.coroutines.DelayKt")
 
-    mockkStatic(::withActivity)
+        mockkStatic(::withActivity)
 
-    val workflowId = WorkflowId("workflow1")
-    val activityId = "activity1"
+        val workflowId = WorkflowId("workflow1")
+        val activityId = "activity1"
 
-    val activityContextMock = mockk<ActivityContext>()
+        val activityContextMock = mockk<ActivityContext>()
 
-    val defaultWorkflowCoroutineContext = WorkflowCoroutineContext(
-        workflowId,
-        mockk<WorkflowContext>(),
-        activityContextMock,
-        mockk<KeyValueClient>(),
-    )
+        val defaultWorkflowCoroutineContext =
+            WorkflowCoroutineContext(
+                workflowId,
+                mockk<WorkflowContext>(),
+                activityContextMock,
+                mockk<KeyValueClient>(),
+            )
 
-    val defaultActivityCoroutineContext = ActivityCoroutineContext(activityId)
+        val defaultActivityCoroutineContext = ActivityCoroutineContext(activityId)
 
-    beforeEach {
-        every {
-            Clock.System.now()
-        } returns now
-
-        coJustRun { delay(any(Duration::class)) }
-    }
-
-    describe("when untilDate doesn't exists") {
         beforeEach {
-            coEvery { withActivity(activityId, emptyList(), listOf("untilDate"), any()) } coAnswers {
-                val block = arg<ActivityCallback>(3)
+            every {
+                Clock.System.now()
+            } returns now
 
-                withContext(defaultActivityCoroutineContext) {
-                    block(emptyMap(), emptyMap())
+            coJustRun { delay(any(Duration::class)) }
+        }
+
+        describe("when untilDate doesn't exists") {
+            beforeEach {
+                coEvery { withActivity(activityId, emptyList(), listOf("untilDate"), any()) } coAnswers {
+                    val block = arg<ActivityCallback>(3)
+
+                    withContext(defaultActivityCoroutineContext) {
+                        block(emptyMap(), emptyMap())
+                    }
+
+                    Unit
                 }
 
-                Unit
+                coJustRun { activityContextMock.set(any()) }
+
+                withContext(defaultWorkflowCoroutineContext) {
+                    delayActivity(activityId, 5.seconds)
+                }
             }
 
-            coJustRun { activityContextMock.set(any()) }
+            it("must save untilDate in activity context") {
+                coVerify(exactly = 1) { activityContextMock.set(mapOf("untilDate" to "2025-01-01T00:00:05Z")) }
+            }
 
-            withContext(defaultWorkflowCoroutineContext) {
-                delayActivity(activityId, 5.seconds)
+            it("must call delay") {
+                coVerify(exactly = 1) { delay(5.seconds) }
             }
         }
 
-        it("must save untilDate in activity context") {
-            coVerify(exactly = 1) { activityContextMock.set(mapOf("untilDate" to "2025-01-01T00:00:05Z")) }
-        }
+        describe("when untilDate exists") {
+            beforeEach {
+                coEvery { withActivity(activityId, emptyList(), listOf("untilDate"), any()) } coAnswers {
+                    val block = arg<ActivityCallback>(3)
 
-        it("must call delay") {
-            coVerify(exactly = 1) { delay(5.seconds) }
-        }
-    }
+                    withContext(defaultActivityCoroutineContext) {
+                        block(emptyMap(), mapOf("untilDate" to "2025-01-01T00:00:03Z"))
+                    }
 
-    describe("when untilDate exists") {
-        beforeEach {
-            coEvery { withActivity(activityId, emptyList(), listOf("untilDate"), any()) } coAnswers {
-                val block = arg<ActivityCallback>(3)
-
-                withContext(defaultActivityCoroutineContext) {
-                    block(emptyMap(), mapOf("untilDate" to "2025-01-01T00:00:03Z"))
+                    Unit
                 }
 
-                Unit
+                withContext(defaultWorkflowCoroutineContext) {
+                    delayActivity(activityId, 5.seconds)
+                }
             }
 
-            withContext(defaultWorkflowCoroutineContext) {
-                delayActivity(activityId, 5.seconds)
+            it("must call delay") {
+                coVerify(exactly = 1) { delay(3.seconds) }
             }
         }
-
-        it("must call delay") {
-            coVerify(exactly = 1) { delay(3.seconds) }
-        }
-    }
-})
+    })

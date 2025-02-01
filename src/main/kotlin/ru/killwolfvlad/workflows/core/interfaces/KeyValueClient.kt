@@ -12,22 +12,34 @@ interface KeyValueClient {
     /**
      * @see <a href="https://redis.io/docs/latest/commands/hget">Redis HGET</a>
      */
-    suspend fun hGet(key: String, field: String): String?
+    suspend fun hGet(
+        key: String,
+        field: String,
+    ): String?
 
     /**
      * @see <a href="https://redis.io/docs/latest/commands/hmget">Redis HMGET</a>
      */
-    suspend fun hMGet(key: String, vararg fields: String): List<String?>
+    suspend fun hMGet(
+        key: String,
+        vararg fields: String,
+    ): List<String?>
 
     /**
      * @see <a href="https://redis.io/docs/latest/commands/hset">Redis HSET</a>
      */
-    suspend fun hSet(key: String, vararg fieldValues: Pair<String, String>)
+    suspend fun hSet(
+        key: String,
+        vararg fieldValues: Pair<String, String>,
+    )
 
     /**
      * @see <a href="https://redis.io/docs/latest/commands/hdel">Redis HDEL</a>
      */
-    suspend fun hDel(key: String, vararg fields: String)
+    suspend fun hDel(
+        key: String,
+        vararg fields: String,
+    )
 
     //endregion
 
@@ -36,12 +48,18 @@ interface KeyValueClient {
     /**
      * @see <a href="https://redis.io/docs/latest/commands/publish">Redis PUBLISH</a>
      */
-    suspend fun publish(channel: String, message: String)
+    suspend fun publish(
+        channel: String,
+        message: String,
+    )
 
     /**
      * @see <a href="https://redis.io/docs/latest/commands/subscribe">Redis SUBSCRIBE</a>
      */
-    suspend fun subscribe(channel: String, handler: suspend (message: String) -> Unit)
+    suspend fun subscribe(
+        channel: String,
+        handler: suspend (message: String) -> Unit,
+    )
 
     //endregion
 
@@ -67,7 +85,12 @@ interface KeyValueClient {
      * Eval [script]. Use [scriptId] to associate script with their hash.
      * @see <a href="https://redis.io/docs/latest/commands/evalsha">Redis EVALSHA</a>
      */
-    suspend fun <T> eval(scriptId: String, script: String, keys: List<String>, vararg args: String): T
+    suspend fun <T> eval(
+        scriptId: String,
+        script: String,
+        keys: List<String>,
+        vararg args: String,
+    ): T
 
     // endregion
 }

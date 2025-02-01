@@ -49,8 +49,7 @@ class WorkflowsWorker(
         workflowClass: KClass<out Workflow>,
     ) = workflowsRunner.run(workflowId, initialContext, workflowClass)
 
-    suspend fun cancel(workflowId: WorkflowId) =
-        workflowsSignalsBroker.cancel(workflowId)
+    suspend fun cancel(workflowId: WorkflowId) = workflowsSignalsBroker.cancel(workflowId)
 
     suspend fun init() {
         workflowsWorkerHeartbeat.init()

@@ -49,18 +49,25 @@ internal class WorkflowsSignalsBroker(
         }
     }
 
-    private suspend inline fun set(workflowId: WorkflowId, signal: WorkflowSignal) {
+    private suspend inline fun set(
+        workflowId: WorkflowId,
+        signal: WorkflowSignal,
+    ) {
         keyValueClient.hSetIfKeyExistsScript(workflowId.workflowKey, WorkflowSignal.FIELD_KEY to signal.toString())
     }
 
-    private suspend inline fun publish(workflowId: WorkflowId, signal: WorkflowSignal) {
+    private suspend inline fun publish(
+        workflowId: WorkflowId,
+        signal: WorkflowSignal,
+    ) {
         keyValueClient.publish(
-            WorkflowSignal.CHANNEL, json.encodeToString(
+            WorkflowSignal.CHANNEL,
+            json.encodeToString(
                 WorkflowSignalMessageDto(
                     workflowId = workflowId,
                     signal = signal,
-                )
-            )
+                ),
+            ),
         )
     }
 }

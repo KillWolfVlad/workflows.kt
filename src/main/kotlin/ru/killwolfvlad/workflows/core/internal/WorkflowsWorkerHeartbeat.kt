@@ -1,6 +1,12 @@
 package ru.killwolfvlad.workflows.core.internal
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import ru.killwolfvlad.workflows.core.WorkflowsConfig
 import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
@@ -14,9 +20,10 @@ class WorkflowsWorkerHeartbeat(
     private val keyValueClient: KeyValueClient,
     private val workflowsExceptionHandler: WorkflowsExceptionHandler,
 ) {
-    private val coroutineScope = CoroutineScope(
-        rootJob + Dispatchers.IO + CoroutineName(WorkflowsWorkerHeartbeat::class.simpleName + "Coroutine"),
-    )
+    private val coroutineScope =
+        CoroutineScope(
+            rootJob + Dispatchers.IO + CoroutineName(WorkflowsWorkerHeartbeat::class.simpleName + "Coroutine"),
+        )
 
     suspend fun init() {
         heartbeat()
@@ -38,6 +45,5 @@ class WorkflowsWorkerHeartbeat(
         }
     }
 
-    private suspend inline fun heartbeat() =
-        keyValueClient.heartbeat(WORKFLOW_WORKERS_KEY, config.workerId, config.lockTimeout)
+    private suspend inline fun heartbeat() = keyValueClient.heartbeat(WORKFLOW_WORKERS_KEY, config.workerId, config.lockTimeout)
 }

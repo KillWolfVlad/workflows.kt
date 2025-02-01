@@ -45,13 +45,10 @@ internal suspend inline fun CoroutineContext.getWorkflowKey(): String =
     coroutineContext[WorkflowCoroutineContext]?.workflowId?.workflowKey
         ?: throw NullPointerException("${WorkflowCoroutineContext::class.simpleName} must be in coroutineContext!")
 
-suspend inline fun Workflow.getWorkflowId(): WorkflowId =
-    coroutineContext.getWorkflowId()
+suspend inline fun Workflow.getWorkflowId(): WorkflowId = coroutineContext.getWorkflowId()
 
 @OptIn(WorkflowsPerformance::class)
-suspend inline fun Workflow.getWorkflowContext(): WorkflowContext =
-    coroutineContext.getWorkflowContext()
+suspend inline fun Workflow.getWorkflowContext(): WorkflowContext = coroutineContext.getWorkflowContext()
 
 @OptIn(WorkflowsPerformance::class)
-suspend inline fun Workflow.getActivityContext(): ActivityContext =
-    coroutineContext.getActivityContext()
+suspend inline fun Workflow.getActivityContext(): ActivityContext = coroutineContext.getActivityContext()

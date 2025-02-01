@@ -16,5 +16,4 @@ suspend inline fun CoroutineContext.getActivityId(): String =
     coroutineContext[ActivityCoroutineContext]?.activityId
         ?: throw NullPointerException("${ActivityCoroutineContext::class.simpleName} must be in coroutineContext!")
 
-suspend inline fun Workflow.getActivityId(): String =
-    coroutineContext.getActivityId()
+suspend inline fun Workflow.getActivityId(): String = coroutineContext.getActivityId()

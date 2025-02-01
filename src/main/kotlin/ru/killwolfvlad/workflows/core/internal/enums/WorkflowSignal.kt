@@ -1,7 +1,8 @@
 package ru.killwolfvlad.workflows.core.internal.enums
 
 internal enum class WorkflowSignal {
-    CANCEL;
+    CANCEL,
+    ;
 
     companion object {
         const val CHANNEL = "workflows:signals"

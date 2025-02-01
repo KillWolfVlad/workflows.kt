@@ -18,20 +18,22 @@ suspend fun withActivity(
     activityContextKeys: List<String> = emptyList(),
     block: ActivityCallback,
 ) {
-    val actualActivityId = coroutineContext[ActivityCoroutineContext]?.let {
-        "${it.activityId}:$activityId"
-    } ?: activityId
+    val actualActivityId =
+        coroutineContext[ActivityCoroutineContext]?.let {
+            "${it.activityId}:$activityId"
+        } ?: activityId
 
     withContext(ActivityCoroutineContext(actualActivityId)) activity@{
         val keyValueClient = coroutineContext.getKeyValueClient()
 
-        val values = keyValueClient.hMGet(
-            coroutineContext.getWorkflowKey(),
-            WorkflowSignal.FIELD_KEY,
-            ActivityStatus.getFieldKey(),
-            *workflowContextKeys.map { it.workflowContextFieldKey }.toTypedArray(),
-            *activityContextKeys.map { it.getActivityContextFieldKey() }.toTypedArray(),
-        )
+        val values =
+            keyValueClient.hMGet(
+                coroutineContext.getWorkflowKey(),
+                WorkflowSignal.FIELD_KEY,
+                ActivityStatus.getFieldKey(),
+                *workflowContextKeys.map { it.workflowContextFieldKey }.toTypedArray(),
+                *activityContextKeys.map { it.getActivityContextFieldKey() }.toTypedArray(),
+            )
 
         val signal = values[0]?.let { WorkflowSignal.valueOf(it) }
 
@@ -45,15 +47,19 @@ suspend fun withActivity(
             return@activity
         }
 
-        val workflowContextMap = values.slice(2..(workflowContextKeys.size + 1))
-            .zip(workflowContextKeys) { a, b ->
-                b to a
-            }.toMap()
+        val workflowContextMap =
+            values
+                .slice(2..(workflowContextKeys.size + 1))
+                .zip(workflowContextKeys) { a, b ->
+                    b to a
+                }.toMap()
 
-        val activityContextMap = values.slice((workflowContextKeys.size + 2) until values.size)
-            .zip(activityContextKeys) { a, b ->
-                b to a
-            }.toMap()
+        val activityContextMap =
+            values
+                .slice((workflowContextKeys.size + 2) until values.size)
+                .zip(activityContextKeys) { a, b ->
+                    b to a
+                }.toMap()
 
         val returnedWorkflowContextMap = block(workflowContextMap, activityContextMap) ?: emptyMap()
 

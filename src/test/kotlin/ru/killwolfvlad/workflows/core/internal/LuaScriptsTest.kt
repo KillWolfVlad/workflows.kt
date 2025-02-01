@@ -11,403 +11,418 @@ import ru.killwolfvlad.workflows.core.types.WorkflowId
 import ru.killwolfvlad.workflows.core.types.workflowKey
 import ru.killwolfvlad.workflows.test.WorkflowsDescribeSpec
 
-class LuaScriptsTest : WorkflowsDescribeSpec({
-    for (testClient in testClients) {
-        val keyValueClient = testClient.keyValueClient
-        val testKeyValueClient = testClient.testKeyValueClient
+class LuaScriptsTest :
+    WorkflowsDescribeSpec({
+        for (testClient in testClients) {
+            val keyValueClient = testClient.keyValueClient
+            val testKeyValueClient = testClient.testKeyValueClient
 
-        describe(testClient.name) {
-            beforeEach {
-                testKeyValueClient.flushDB()
-            }
+            describe(testClient.name) {
+                beforeEach {
+                    testKeyValueClient.flushDB()
+                }
 
-            describe("heartbeat") {
-                describe("when heartbeat doesn't exists") {
-                    beforeEach {
-                        keyValueClient.heartbeat(
-                            WORKFLOW_WORKERS_KEY,
-                            defaultWorkflowsConfig.workerId,
-                            defaultWorkflowsConfig.lockTimeout,
-                        )
+                describe("heartbeat") {
+                    describe("when heartbeat doesn't exists") {
+                        beforeEach {
+                            keyValueClient.heartbeat(
+                                WORKFLOW_WORKERS_KEY,
+                                defaultWorkflowsConfig.workerId,
+                                defaultWorkflowsConfig.lockTimeout,
+                            )
+                        }
+
+                        it("must set heartbeat") {
+                            testKeyValueClient.hGet(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId) shouldBe "OK"
+                        }
+
+                        it("must update heartbeat ttl") {
+                            val ttl =
+                                testKeyValueClient.hPTTL(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId).first()
+
+                            ttl shouldBeInRange 0L..defaultWorkflowsConfig.lockTimeout.inWholeMilliseconds
+                        }
                     }
 
-                    it("must set heartbeat") {
-                        testKeyValueClient.hGet(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId) shouldBe "OK"
-                    }
+                    describe("when heartbeat exists") {
+                        beforeEach {
+                            testKeyValueClient.hSet(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId to "OK")
 
-                    it("must update heartbeat ttl") {
-                        val ttl =
-                            testKeyValueClient.hPTTL(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId).first()
+                            keyValueClient.heartbeat(
+                                WORKFLOW_WORKERS_KEY,
+                                defaultWorkflowsConfig.workerId,
+                                defaultWorkflowsConfig.lockTimeout,
+                            )
+                        }
 
-                        ttl shouldBeInRange 0L..defaultWorkflowsConfig.lockTimeout.inWholeMilliseconds
+                        it("must set heartbeat") {
+                            testKeyValueClient.hGet(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId) shouldBe "OK"
+                        }
+
+                        it("must update heartbeat ttl") {
+                            val ttl =
+                                testKeyValueClient.hPTTL(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId).first()
+
+                            ttl shouldBeInRange 0L..defaultWorkflowsConfig.lockTimeout.inWholeMilliseconds
+                        }
                     }
                 }
 
-                describe("when heartbeat exists") {
-                    beforeEach {
-                        testKeyValueClient.hSet(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId to "OK")
+                describe("acquireWorkflowLock") {
+                    val currentWorkflowId = WorkflowId("workflow1")
+                    val currentWorkerId = "test-worker-1"
+                    val otherWorkerId = "test-worker-2"
 
-                        keyValueClient.heartbeat(
-                            WORKFLOW_WORKERS_KEY,
-                            defaultWorkflowsConfig.workerId,
-                            defaultWorkflowsConfig.lockTimeout,
-                        )
-                    }
-
-                    it("must set heartbeat") {
-                        testKeyValueClient.hGet(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId) shouldBe "OK"
-                    }
-
-                    it("must update heartbeat ttl") {
-                        val ttl =
-                            testKeyValueClient.hPTTL(WORKFLOW_WORKERS_KEY, defaultWorkflowsConfig.workerId).first()
-
-                        ttl shouldBeInRange 0L..defaultWorkflowsConfig.lockTimeout.inWholeMilliseconds
-                    }
-                }
-            }
-
-            describe("acquireWorkflowLock") {
-                val currentWorkflowId = WorkflowId("workflow1")
-                val currentWorkerId = "test-worker-1"
-                val otherWorkerId = "test-worker-2"
-
-                describe("when workflow doesn't exists") {
-                    var result: Long? = null
-
-                    beforeEach {
-                        result = keyValueClient.acquireWorkflowLock(
-                            // keys
-                            workflowKey = currentWorkflowId.workflowKey,
-                            workflowLocksKey = WORKFLOW_LOCKS_KEY,
-                            workflowWorkersKey = WORKFLOW_WORKERS_KEY,
-                            // arguments
-                            workflowId = currentWorkflowId,
-                            workerId = currentWorkerId,
-                            // workflow context
-                            workflowClassNameFieldKey = WORKFLOW_CLASS_NAME_FIELD_KEY,
-                            workflowClassName = LuaScriptsTest::class.workflowClassName,
-                            initialContext = mapOf("field1" to "value1", "field2" to "value2"),
-                        )
-                    }
-
-                    it("must return 1") {
-                        result shouldBe 1L
-                    }
-
-                    it("must set workflow") {
-                        testKeyValueClient.hGetAll(currentWorkflowId.workflowKey) shouldBe mapOf(
-                            WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
-                            "field1" to "value1",
-                            "field2" to "value2",
-                        )
-                    }
-
-                    it("must set lock") {
-                        testKeyValueClient.hGet(WORKFLOW_LOCKS_KEY, currentWorkflowId.value) shouldBe currentWorkerId
-                    }
-                }
-
-                describe("when workflow exists") {
-                    beforeEach {
-                        testKeyValueClient.hSet(
-                            currentWorkflowId.workflowKey,
-                            WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
-                            "field1" to "value1",
-                            "field2" to "value2",
-                        )
-                    }
-
-                    describe("when lock acquired by current worker") {
+                    describe("when workflow doesn't exists") {
                         var result: Long? = null
 
                         beforeEach {
+                            result =
+                                keyValueClient.acquireWorkflowLock(
+                                    // keys
+                                    workflowKey = currentWorkflowId.workflowKey,
+                                    workflowLocksKey = WORKFLOW_LOCKS_KEY,
+                                    workflowWorkersKey = WORKFLOW_WORKERS_KEY,
+                                    // arguments
+                                    workflowId = currentWorkflowId,
+                                    workerId = currentWorkerId,
+                                    // workflow context
+                                    workflowClassNameFieldKey = WORKFLOW_CLASS_NAME_FIELD_KEY,
+                                    workflowClassName = LuaScriptsTest::class.workflowClassName,
+                                    initialContext = mapOf("field1" to "value1", "field2" to "value2"),
+                                )
+                        }
+
+                        it("must return 1") {
+                            result shouldBe 1L
+                        }
+
+                        it("must set workflow") {
+                            testKeyValueClient.hGetAll(currentWorkflowId.workflowKey) shouldBe
+                                mapOf(
+                                    WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
+                                    "field1" to "value1",
+                                    "field2" to "value2",
+                                )
+                        }
+
+                        it("must set lock") {
+                            testKeyValueClient.hGet(WORKFLOW_LOCKS_KEY, currentWorkflowId.value) shouldBe currentWorkerId
+                        }
+                    }
+
+                    describe("when workflow exists") {
+                        beforeEach {
                             testKeyValueClient.hSet(
-                                WORKFLOW_LOCKS_KEY,
-                                currentWorkflowId.value to currentWorkerId,
-                            )
-
-                            result = keyValueClient.acquireWorkflowLock(
-                                // keys
-                                workflowKey = currentWorkflowId.workflowKey,
-                                workflowLocksKey = WORKFLOW_LOCKS_KEY,
-                                workflowWorkersKey = WORKFLOW_WORKERS_KEY,
-                                // arguments
-                                workflowId = currentWorkflowId,
-                                workerId = currentWorkerId,
-                                // workflow context
-                                workflowClassNameFieldKey = WORKFLOW_CLASS_NAME_FIELD_KEY,
-                                workflowClassName = LuaScriptsTest::class.workflowClassName,
-                                initialContext = mapOf("field3" to "value3", "field4" to "value4"),
-                            )
-                        }
-
-                        it("must return 2") {
-                            result shouldBe 2L
-                        }
-
-                        it("must don't change workflow") {
-                            testKeyValueClient.hGetAll(currentWorkflowId.workflowKey) shouldBe mapOf(
+                                currentWorkflowId.workflowKey,
                                 WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
                                 "field1" to "value1",
                                 "field2" to "value2",
                             )
                         }
 
-                        it("must don't change lock") {
-                            testKeyValueClient.hGet(
-                                WORKFLOW_LOCKS_KEY,
-                                currentWorkflowId.value
-                            ) shouldBe currentWorkerId
-                        }
-                    }
-
-                    describe("when lock acquired by other worker") {
-                        beforeEach {
-                            testKeyValueClient.hSet(WORKFLOW_LOCKS_KEY, currentWorkflowId.value to otherWorkerId)
-                        }
-
-                        describe("when other worker doesn't exists") {
+                        describe("when lock acquired by current worker") {
                             var result: Long? = null
 
                             beforeEach {
-                                result = keyValueClient.acquireWorkflowLock(
-                                    // keys
-                                    workflowKey = currentWorkflowId.workflowKey,
-                                    workflowLocksKey = WORKFLOW_LOCKS_KEY,
-                                    workflowWorkersKey = WORKFLOW_WORKERS_KEY,
-                                    // arguments
-                                    workflowId = currentWorkflowId,
-                                    workerId = currentWorkerId,
-                                    // workflow context
-                                    workflowClassNameFieldKey = WORKFLOW_CLASS_NAME_FIELD_KEY,
-                                    workflowClassName = LuaScriptsTest::class.workflowClassName,
-                                    initialContext = mapOf("field3" to "value3", "field4" to "value4"),
-                                )
-                            }
-
-                            it("must return 3") {
-                                result shouldBe 3L
-                            }
-
-                            it("must don't change workflow") {
-                                testKeyValueClient.hGetAll(currentWorkflowId.workflowKey) shouldBe mapOf(
-                                    WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
-                                    "field1" to "value1",
-                                    "field2" to "value2",
-                                )
-                            }
-
-                            it("must change lock to current worker") {
-                                testKeyValueClient.hGet(
+                                testKeyValueClient.hSet(
                                     WORKFLOW_LOCKS_KEY,
-                                    currentWorkflowId.value
-                                ) shouldBe currentWorkerId
-                            }
-                        }
-
-                        describe("when other worker exists") {
-                            var result: Long? = null
-
-                            beforeEach {
-                                testKeyValueClient.hSet(WORKFLOW_WORKERS_KEY, otherWorkerId to "OK")
-
-                                result = keyValueClient.acquireWorkflowLock(
-                                    // keys
-                                    workflowKey = currentWorkflowId.workflowKey,
-                                    workflowLocksKey = WORKFLOW_LOCKS_KEY,
-                                    workflowWorkersKey = WORKFLOW_WORKERS_KEY,
-                                    // arguments
-                                    workflowId = currentWorkflowId,
-                                    workerId = currentWorkerId,
-                                    // workflow context
-                                    workflowClassNameFieldKey = WORKFLOW_CLASS_NAME_FIELD_KEY,
-                                    workflowClassName = LuaScriptsTest::class.workflowClassName,
-                                    initialContext = mapOf("field3" to "value3", "field4" to "value4"),
+                                    currentWorkflowId.value to currentWorkerId,
                                 )
+
+                                result =
+                                    keyValueClient.acquireWorkflowLock(
+                                        // keys
+                                        workflowKey = currentWorkflowId.workflowKey,
+                                        workflowLocksKey = WORKFLOW_LOCKS_KEY,
+                                        workflowWorkersKey = WORKFLOW_WORKERS_KEY,
+                                        // arguments
+                                        workflowId = currentWorkflowId,
+                                        workerId = currentWorkerId,
+                                        // workflow context
+                                        workflowClassNameFieldKey = WORKFLOW_CLASS_NAME_FIELD_KEY,
+                                        workflowClassName = LuaScriptsTest::class.workflowClassName,
+                                        initialContext = mapOf("field3" to "value3", "field4" to "value4"),
+                                    )
                             }
 
-                            it("must return 0") {
-                                result shouldBe 0L
+                            it("must return 2") {
+                                result shouldBe 2L
                             }
 
                             it("must don't change workflow") {
-                                testKeyValueClient.hGetAll(currentWorkflowId.workflowKey) shouldBe mapOf(
-                                    WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
-                                    "field1" to "value1",
-                                    "field2" to "value2",
-                                )
+                                testKeyValueClient.hGetAll(currentWorkflowId.workflowKey) shouldBe
+                                    mapOf(
+                                        WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
+                                        "field1" to "value1",
+                                        "field2" to "value2",
+                                    )
                             }
 
                             it("must don't change lock") {
                                 testKeyValueClient.hGet(
                                     WORKFLOW_LOCKS_KEY,
-                                    currentWorkflowId.value
-                                ) shouldBe otherWorkerId
+                                    currentWorkflowId.value,
+                                ) shouldBe currentWorkerId
+                            }
+                        }
+
+                        describe("when lock acquired by other worker") {
+                            beforeEach {
+                                testKeyValueClient.hSet(WORKFLOW_LOCKS_KEY, currentWorkflowId.value to otherWorkerId)
+                            }
+
+                            describe("when other worker doesn't exists") {
+                                var result: Long? = null
+
+                                beforeEach {
+                                    result =
+                                        keyValueClient.acquireWorkflowLock(
+                                            // keys
+                                            workflowKey = currentWorkflowId.workflowKey,
+                                            workflowLocksKey = WORKFLOW_LOCKS_KEY,
+                                            workflowWorkersKey = WORKFLOW_WORKERS_KEY,
+                                            // arguments
+                                            workflowId = currentWorkflowId,
+                                            workerId = currentWorkerId,
+                                            // workflow context
+                                            workflowClassNameFieldKey = WORKFLOW_CLASS_NAME_FIELD_KEY,
+                                            workflowClassName = LuaScriptsTest::class.workflowClassName,
+                                            initialContext = mapOf("field3" to "value3", "field4" to "value4"),
+                                        )
+                                }
+
+                                it("must return 3") {
+                                    result shouldBe 3L
+                                }
+
+                                it("must don't change workflow") {
+                                    testKeyValueClient.hGetAll(currentWorkflowId.workflowKey) shouldBe
+                                        mapOf(
+                                            WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
+                                            "field1" to "value1",
+                                            "field2" to "value2",
+                                        )
+                                }
+
+                                it("must change lock to current worker") {
+                                    testKeyValueClient.hGet(
+                                        WORKFLOW_LOCKS_KEY,
+                                        currentWorkflowId.value,
+                                    ) shouldBe currentWorkerId
+                                }
+                            }
+
+                            describe("when other worker exists") {
+                                var result: Long? = null
+
+                                beforeEach {
+                                    testKeyValueClient.hSet(WORKFLOW_WORKERS_KEY, otherWorkerId to "OK")
+
+                                    result =
+                                        keyValueClient.acquireWorkflowLock(
+                                            // keys
+                                            workflowKey = currentWorkflowId.workflowKey,
+                                            workflowLocksKey = WORKFLOW_LOCKS_KEY,
+                                            workflowWorkersKey = WORKFLOW_WORKERS_KEY,
+                                            // arguments
+                                            workflowId = currentWorkflowId,
+                                            workerId = currentWorkerId,
+                                            // workflow context
+                                            workflowClassNameFieldKey = WORKFLOW_CLASS_NAME_FIELD_KEY,
+                                            workflowClassName = LuaScriptsTest::class.workflowClassName,
+                                            initialContext = mapOf("field3" to "value3", "field4" to "value4"),
+                                        )
+                                }
+
+                                it("must return 0") {
+                                    result shouldBe 0L
+                                }
+
+                                it("must don't change workflow") {
+                                    testKeyValueClient.hGetAll(currentWorkflowId.workflowKey) shouldBe
+                                        mapOf(
+                                            WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
+                                            "field1" to "value1",
+                                            "field2" to "value2",
+                                        )
+                                }
+
+                                it("must don't change lock") {
+                                    testKeyValueClient.hGet(
+                                        WORKFLOW_LOCKS_KEY,
+                                        currentWorkflowId.value,
+                                    ) shouldBe otherWorkerId
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            describe("deleteWorkflow") {
-                val currentWorkflowId = WorkflowId("workflow1")
-                val otherWorkflowId = WorkflowId("workflow2")
-                val currentWorkerId = "test-worker-1"
-                val otherWorkerId = "test-worker-2"
-
-                beforeEach {
-                    keyValueClient.acquireWorkflowLock(
-                        // keys
-                        workflowKey = otherWorkflowId.workflowKey,
-                        workflowLocksKey = WORKFLOW_LOCKS_KEY,
-                        workflowWorkersKey = WORKFLOW_WORKERS_KEY,
-                        // arguments
-                        workflowId = otherWorkflowId,
-                        workerId = otherWorkerId,
-                        // workflow context
-                        workflowClassNameFieldKey = WORKFLOW_CLASS_NAME_FIELD_KEY,
-                        workflowClassName = LuaScriptsTest::class.workflowClassName,
-                        initialContext = mapOf("field1" to "value1", "field2" to "value2"),
-                    )
-                }
-
-                describe("when workflow doesn't exists") {
-                    beforeEach {
-                        keyValueClient.deleteWorkflow(
-                            // keys
-                            workflowKey = currentWorkflowId.workflowKey,
-                            workflowLocksKey = WORKFLOW_LOCKS_KEY,
-                            // arguments
-                            workflowId = currentWorkflowId,
-                        )
-                    }
-
-                    it("must don't change other workflows") {
-                        testKeyValueClient.hGetAll(otherWorkflowId.workflowKey) shouldBe mapOf(
-                            WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
-                            "field1" to "value1",
-                            "field2" to "value2",
-                        )
-                    }
-
-                    it("must don't change other locks") {
-                        testKeyValueClient.hGet(WORKFLOW_LOCKS_KEY, otherWorkflowId.value) shouldBe otherWorkerId
-                    }
-                }
-
-                describe("when workflow exists") {
-                    var result: Long? = null
+                describe("deleteWorkflow") {
+                    val currentWorkflowId = WorkflowId("workflow1")
+                    val otherWorkflowId = WorkflowId("workflow2")
+                    val currentWorkerId = "test-worker-1"
+                    val otherWorkerId = "test-worker-2"
 
                     beforeEach {
-                        result = keyValueClient.acquireWorkflowLock(
+                        keyValueClient.acquireWorkflowLock(
                             // keys
-                            workflowKey = currentWorkflowId.workflowKey,
+                            workflowKey = otherWorkflowId.workflowKey,
                             workflowLocksKey = WORKFLOW_LOCKS_KEY,
                             workflowWorkersKey = WORKFLOW_WORKERS_KEY,
                             // arguments
-                            workflowId = currentWorkflowId,
-                            workerId = currentWorkerId,
+                            workflowId = otherWorkflowId,
+                            workerId = otherWorkerId,
                             // workflow context
                             workflowClassNameFieldKey = WORKFLOW_CLASS_NAME_FIELD_KEY,
                             workflowClassName = LuaScriptsTest::class.workflowClassName,
                             initialContext = mapOf("field1" to "value1", "field2" to "value2"),
                         )
-
-                        keyValueClient.deleteWorkflow(
-                            // keys
-                            workflowKey = currentWorkflowId.workflowKey,
-                            workflowLocksKey = WORKFLOW_LOCKS_KEY,
-                            // arguments
-                            workflowId = currentWorkflowId,
-                        )
                     }
 
-                    it("must set workflow before deletion") {
-                        result shouldBe 1L
+                    describe("when workflow doesn't exists") {
+                        beforeEach {
+                            keyValueClient.deleteWorkflow(
+                                // keys
+                                workflowKey = currentWorkflowId.workflowKey,
+                                workflowLocksKey = WORKFLOW_LOCKS_KEY,
+                                // arguments
+                                workflowId = currentWorkflowId,
+                            )
+                        }
+
+                        it("must don't change other workflows") {
+                            testKeyValueClient.hGetAll(otherWorkflowId.workflowKey) shouldBe
+                                mapOf(
+                                    WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
+                                    "field1" to "value1",
+                                    "field2" to "value2",
+                                )
+                        }
+
+                        it("must don't change other locks") {
+                            testKeyValueClient.hGet(WORKFLOW_LOCKS_KEY, otherWorkflowId.value) shouldBe otherWorkerId
+                        }
                     }
 
-                    it("must delete workflow") {
-                        testKeyValueClient.exists(currentWorkflowId.workflowKey) shouldBe 0L
-                    }
+                    describe("when workflow exists") {
+                        var result: Long? = null
 
-                    it("must delete lock") {
-                        testKeyValueClient.hExists(WORKFLOW_LOCKS_KEY, currentWorkflowId.value) shouldBe false
-                    }
+                        beforeEach {
+                            result =
+                                keyValueClient.acquireWorkflowLock(
+                                    // keys
+                                    workflowKey = currentWorkflowId.workflowKey,
+                                    workflowLocksKey = WORKFLOW_LOCKS_KEY,
+                                    workflowWorkersKey = WORKFLOW_WORKERS_KEY,
+                                    // arguments
+                                    workflowId = currentWorkflowId,
+                                    workerId = currentWorkerId,
+                                    // workflow context
+                                    workflowClassNameFieldKey = WORKFLOW_CLASS_NAME_FIELD_KEY,
+                                    workflowClassName = LuaScriptsTest::class.workflowClassName,
+                                    initialContext = mapOf("field1" to "value1", "field2" to "value2"),
+                                )
 
-                    it("must don't change other workflows") {
-                        testKeyValueClient.hGetAll(otherWorkflowId.workflowKey) shouldBe mapOf(
-                            WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
-                            "field1" to "value1",
-                            "field2" to "value2",
-                        )
-                    }
+                            keyValueClient.deleteWorkflow(
+                                // keys
+                                workflowKey = currentWorkflowId.workflowKey,
+                                workflowLocksKey = WORKFLOW_LOCKS_KEY,
+                                // arguments
+                                workflowId = currentWorkflowId,
+                            )
+                        }
 
-                    it("must don't change other locks") {
-                        testKeyValueClient.hGet(WORKFLOW_LOCKS_KEY, otherWorkflowId.value) shouldBe otherWorkerId
+                        it("must set workflow before deletion") {
+                            result shouldBe 1L
+                        }
+
+                        it("must delete workflow") {
+                            testKeyValueClient.exists(currentWorkflowId.workflowKey) shouldBe 0L
+                        }
+
+                        it("must delete lock") {
+                            testKeyValueClient.hExists(WORKFLOW_LOCKS_KEY, currentWorkflowId.value) shouldBe false
+                        }
+
+                        it("must don't change other workflows") {
+                            testKeyValueClient.hGetAll(otherWorkflowId.workflowKey) shouldBe
+                                mapOf(
+                                    WORKFLOW_CLASS_NAME_FIELD_KEY to LuaScriptsTest::class.workflowClassName,
+                                    "field1" to "value1",
+                                    "field2" to "value2",
+                                )
+                        }
+
+                        it("must don't change other locks") {
+                            testKeyValueClient.hGet(WORKFLOW_LOCKS_KEY, otherWorkflowId.value) shouldBe otherWorkerId
+                        }
                     }
                 }
-            }
 
-            describe("hSetIfKeyExistsScript") {
-                describe("when key doesn't exist") {
-                    beforeEach {
-                        keyValueClient.hSetIfKeyExistsScript("key", "field1" to "value1", "field2" to "value2")
-                    }
-
-                    it("must do nothing") {
-                        testKeyValueClient.keys("*").toList() shouldHaveSize 0
-                    }
-                }
-
-                describe("when key exists") {
-                    beforeEach {
-                        testKeyValueClient.hSet("key", "field1" to "value1", "field2" to "value2")
-                    }
-
-                    describe("when fields doesn't exists") {
+                describe("hSetIfKeyExistsScript") {
+                    describe("when key doesn't exist") {
                         beforeEach {
-                            keyValueClient.hSetIfKeyExistsScript("key", "field3" to "value3", "field4" to "value4")
+                            keyValueClient.hSetIfKeyExistsScript("key", "field1" to "value1", "field2" to "value2")
                         }
 
-                        it("must add values") {
-                            testKeyValueClient.hGetAll("key") shouldBe mapOf(
-                                "field1" to "value1",
-                                "field2" to "value2",
-                                "field3" to "value3",
-                                "field4" to "value4",
-                            )
+                        it("must do nothing") {
+                            testKeyValueClient.keys("*").toList() shouldHaveSize 0
                         }
                     }
 
-                    describe("when some fields exists") {
+                    describe("when key exists") {
                         beforeEach {
-                            keyValueClient.hSetIfKeyExistsScript("key", "field1" to "value11", "field4" to "value4")
+                            testKeyValueClient.hSet("key", "field1" to "value1", "field2" to "value2")
                         }
 
-                        it("must add and overwrite values") {
-                            testKeyValueClient.hGetAll("key") shouldBe mapOf(
-                                "field1" to "value11",
-                                "field2" to "value2",
-                                "field4" to "value4",
-                            )
-                        }
-                    }
+                        describe("when fields doesn't exists") {
+                            beforeEach {
+                                keyValueClient.hSetIfKeyExistsScript("key", "field3" to "value3", "field4" to "value4")
+                            }
 
-                    describe("when fields exists") {
-                        beforeEach {
-                            keyValueClient.hSetIfKeyExistsScript("key", "field1" to "value11", "field2" to "value22")
+                            it("must add values") {
+                                testKeyValueClient.hGetAll("key") shouldBe
+                                    mapOf(
+                                        "field1" to "value1",
+                                        "field2" to "value2",
+                                        "field3" to "value3",
+                                        "field4" to "value4",
+                                    )
+                            }
                         }
 
-                        it("must overwrite values") {
-                            testKeyValueClient.hGetAll("key") shouldBe mapOf(
-                                "field1" to "value11",
-                                "field2" to "value22",
-                            )
+                        describe("when some fields exists") {
+                            beforeEach {
+                                keyValueClient.hSetIfKeyExistsScript("key", "field1" to "value11", "field4" to "value4")
+                            }
+
+                            it("must add and overwrite values") {
+                                testKeyValueClient.hGetAll("key") shouldBe
+                                    mapOf(
+                                        "field1" to "value11",
+                                        "field2" to "value2",
+                                        "field4" to "value4",
+                                    )
+                            }
+                        }
+
+                        describe("when fields exists") {
+                            beforeEach {
+                                keyValueClient.hSetIfKeyExistsScript("key", "field1" to "value11", "field2" to "value22")
+                            }
+
+                            it("must overwrite values") {
+                                testKeyValueClient.hGetAll("key") shouldBe
+                                    mapOf(
+                                        "field1" to "value11",
+                                        "field2" to "value22",
+                                    )
+                            }
                         }
                     }
                 }
             }
         }
-    }
-})
+    })

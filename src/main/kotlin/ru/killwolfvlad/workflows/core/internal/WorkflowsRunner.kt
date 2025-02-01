@@ -1,7 +1,13 @@
 package ru.killwolfvlad.workflows.core.internal
 
-import io.ktor.util.collections.*
-import kotlinx.coroutines.*
+import io.ktor.util.collections.ConcurrentMap
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import ru.killwolfvlad.workflows.core.ActivityContext
 import ru.killwolfvlad.workflows.core.WorkflowContext
 import ru.killwolfvlad.workflows.core.WorkflowsConfig
@@ -30,9 +36,10 @@ internal class WorkflowsRunner(
     private val workflowsClassManager: WorkflowsClassManager,
     private val workflowsExceptionHandler: WorkflowsExceptionHandler,
 ) {
-    private val coroutineScope = CoroutineScope(
-        rootJob + Dispatchers.IO + CoroutineName(WorkflowsRunner::class.simpleName + "Coroutine"),
-    )
+    private val coroutineScope =
+        CoroutineScope(
+            rootJob + Dispatchers.IO + CoroutineName(WorkflowsRunner::class.simpleName + "Coroutine"),
+        )
 
     private val workflowJobs = ConcurrentMap<WorkflowId, Job>()
 
@@ -56,8 +63,7 @@ internal class WorkflowsRunner(
         workflowJobs[workflowId]?.cancel()
     }
 
-    fun contains(workflowId: WorkflowId): Boolean =
-        workflowJobs.containsKey(workflowId)
+    fun contains(workflowId: WorkflowId): Boolean = workflowJobs.containsKey(workflowId)
 
     private suspend inline fun acquireWorkflowLock(
         workflowId: WorkflowId,
@@ -82,51 +88,54 @@ internal class WorkflowsRunner(
         workflowId: WorkflowId,
         workflowClass: KClass<out Workflow>,
     ) {
-        workflowJobs[workflowId] = coroutineScope.launch(
-            WorkflowCoroutineContext(workflowId, workflowContext, activityContext, keyValueClient),
-            CoroutineStart.LAZY,
-        ) workflow@{
-            try {
-                val signal = keyValueClient.hGet(workflowId.workflowKey, WorkflowSignal.FIELD_KEY)?.let {
-                    WorkflowSignal.valueOf(it)
+        workflowJobs[workflowId] =
+            coroutineScope
+                .launch(
+                    WorkflowCoroutineContext(workflowId, workflowContext, activityContext, keyValueClient),
+                    CoroutineStart.LAZY,
+                ) workflow@{
+                    try {
+                        val signal =
+                            keyValueClient.hGet(workflowId.workflowKey, WorkflowSignal.FIELD_KEY)?.let {
+                                WorkflowSignal.valueOf(it)
+                            }
+
+                        if (signal != WorkflowSignal.CANCEL) {
+                            val workflow = workflowsClassManager.getInstance(workflowClass)
+
+                            workflow.execute()
+                        }
+                    } catch (_: CancellationException) {
+                        // skip cancellation exception
+                    } catch (exception: Exception) {
+                        runCatching {
+                            workflowsExceptionHandler.handle(exception)
+                        }
+
+                        return@workflow
+                    }
+
+                    try {
+                        keyValueClient.deleteWorkflow(
+                            // keys
+                            workflowKey = workflowId.workflowKey,
+                            workflowLocksKey = WORKFLOW_LOCKS_KEY,
+                            // arguments
+                            workflowId = workflowId,
+                        )
+                    } catch (_: CancellationException) {
+                        // skip cancellation exception
+                    } catch (exception: Exception) {
+                        runCatching {
+                            workflowsExceptionHandler.handle(exception)
+                        }
+                    }
+                }.also {
+                    it.invokeOnCompletion {
+                        workflowJobs.remove(workflowId)
+                    }
+
+                    it.start()
                 }
-
-                if (signal != WorkflowSignal.CANCEL) {
-                    val workflow = workflowsClassManager.getInstance(workflowClass)
-
-                    workflow.execute()
-                }
-            } catch (_: CancellationException) {
-                // skip cancellation exception
-            } catch (exception: Exception) {
-                runCatching {
-                    workflowsExceptionHandler.handle(exception)
-                }
-
-                return@workflow
-            }
-
-            try {
-                keyValueClient.deleteWorkflow(
-                    // keys
-                    workflowKey = workflowId.workflowKey,
-                    workflowLocksKey = WORKFLOW_LOCKS_KEY,
-                    // arguments
-                    workflowId = workflowId,
-                )
-            } catch (_: CancellationException) {
-                // skip cancellation exception
-            } catch (exception: Exception) {
-                runCatching {
-                    workflowsExceptionHandler.handle(exception)
-                }
-            }
-        }.also {
-            it.invokeOnCompletion {
-                workflowJobs.remove(workflowId)
-            }
-
-            it.start()
-        }
     }
 }

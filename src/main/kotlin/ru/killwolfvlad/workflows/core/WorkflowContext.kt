@@ -9,20 +9,20 @@ import kotlin.coroutines.coroutineContext
 class WorkflowContext internal constructor(
     private val keyValueClient: KeyValueClient,
 ) {
-    suspend fun get(key: String): String? =
-        keyValueClient.hGet(coroutineContext.getWorkflowKey(), key.workflowContextFieldKey)
+    suspend fun get(key: String): String? = keyValueClient.hGet(coroutineContext.getWorkflowKey(), key.workflowContextFieldKey)
 
     suspend fun get(vararg keys: String): Map<String, String?> {
         if (keys.isEmpty()) {
             return emptyMap()
         }
 
-        return keyValueClient.hMGet(
-            coroutineContext.getWorkflowKey(),
-            *keys.map { it.workflowContextFieldKey }.toTypedArray(),
-        ).zip(keys) { a, b ->
-            b to a
-        }.toMap()
+        return keyValueClient
+            .hMGet(
+                coroutineContext.getWorkflowKey(),
+                *keys.map { it.workflowContextFieldKey }.toTypedArray(),
+            ).zip(keys) { a, b ->
+                b to a
+            }.toMap()
     }
 
     suspend fun set(context: Map<String, String>) {
@@ -32,7 +32,7 @@ class WorkflowContext internal constructor(
 
         keyValueClient.hSet(
             coroutineContext.getWorkflowKey(),
-            *context.map { it.key.workflowContextFieldKey to it.value }.toTypedArray()
+            *context.map { it.key.workflowContextFieldKey to it.value }.toTypedArray(),
         )
     }
 

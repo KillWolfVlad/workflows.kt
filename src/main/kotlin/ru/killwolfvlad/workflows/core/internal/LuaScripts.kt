@@ -8,79 +8,79 @@ import kotlin.time.Duration
 internal object LuaScripts {
     val heartbeat =
         """
-            local workflowWorkersKey = KEYS[1]
-            local workerId = ARGV[1]
-            local lockTimeout = ARGV[2]
+        local workflowWorkersKey = KEYS[1]
+        local workerId = ARGV[1]
+        local lockTimeout = ARGV[2]
 
-            if redis.call('HEXISTS', workflowWorkersKey, workerId) == 0 then
-                redis.call('HSET', workflowWorkersKey, workerId, 'OK')
-            end
+        if redis.call('HEXISTS', workflowWorkersKey, workerId) == 0 then
+            redis.call('HSET', workflowWorkersKey, workerId, 'OK')
+        end
 
-            redis.call('HPEXPIRE', workflowWorkersKey, lockTimeout, 'FIELDS', 1, workerId)
+        redis.call('HPEXPIRE', workflowWorkersKey, lockTimeout, 'FIELDS', 1, workerId)
         """.trimIndent()
 
     val acquireWorkflowLock =
         """
-            local workflowKey = KEYS[1]
-            local workflowLocksKey = KEYS[2]
-            local workflowWorkersKey = KEYS[3]
-            local workflowId = ARGV[1]
-            local workerId = ARGV[2]
-            local workflowContextSizeIndex = 3
-            local workflowContextSize = ARGV[workflowContextSizeIndex]
+        local workflowKey = KEYS[1]
+        local workflowLocksKey = KEYS[2]
+        local workflowWorkersKey = KEYS[3]
+        local workflowId = ARGV[1]
+        local workerId = ARGV[2]
+        local workflowContextSizeIndex = 3
+        local workflowContextSize = ARGV[workflowContextSizeIndex]
 
-            if redis.call('EXISTS', workflowKey) == 0 then
-                local context = {}
+        if redis.call('EXISTS', workflowKey) == 0 then
+            local context = {}
 
-                for i = 1, tonumber(workflowContextSize), 1 do
-                    context[i] = ARGV[workflowContextSizeIndex + i]
-                end
-
-                redis.call('HSET', workflowKey, unpack(context))
-                redis.call('HSET', workflowLocksKey, workflowId, workerId)
-
-                return 1
+            for i = 1, tonumber(workflowContextSize), 1 do
+                context[i] = ARGV[workflowContextSizeIndex + i]
             end
 
-            local currentLockWorkerId = redis.call('HGET', workflowLocksKey, workflowId)
+            redis.call('HSET', workflowKey, unpack(context))
+            redis.call('HSET', workflowLocksKey, workflowId, workerId)
 
-            if currentLockWorkerId == workerId then
-                return 2
-            end
+            return 1
+        end
 
-            if redis.call('HEXISTS', workflowWorkersKey, currentLockWorkerId) == 0 then
-                redis.call('HSET', workflowLocksKey, workflowId, workerId)
+        local currentLockWorkerId = redis.call('HGET', workflowLocksKey, workflowId)
 
-                return 3
-            end
+        if currentLockWorkerId == workerId then
+            return 2
+        end
 
-            return 0
+        if redis.call('HEXISTS', workflowWorkersKey, currentLockWorkerId) == 0 then
+            redis.call('HSET', workflowLocksKey, workflowId, workerId)
+
+            return 3
+        end
+
+        return 0
         """.trimIndent()
 
     val deleteWorkflow =
         """
-            local workflowKey = KEYS[1]
-            local workflowLocksKey = KEYS[2]
-            local workflowId = ARGV[1]
+        local workflowKey = KEYS[1]
+        local workflowLocksKey = KEYS[2]
+        local workflowId = ARGV[1]
 
-            redis.call('DEL', workflowKey)
-            redis.call('HDEL', workflowLocksKey, workflowId)
+        redis.call('DEL', workflowKey)
+        redis.call('HDEL', workflowLocksKey, workflowId)
         """.trimIndent()
 
     val hSetIfKeyExistsScript =
         """
-            if redis.call('EXISTS', KEYS[1]) == 1 then
-                local fieldValuesSizeIndex = 1
-                local fieldValuesSize = ARGV[fieldValuesSizeIndex]
+        if redis.call('EXISTS', KEYS[1]) == 1 then
+            local fieldValuesSizeIndex = 1
+            local fieldValuesSize = ARGV[fieldValuesSizeIndex]
 
-                local fieldValues = {}
+            local fieldValues = {}
 
-                for i = 1, tonumber(fieldValuesSize), 1 do
-                    fieldValues[i] = ARGV[fieldValuesSizeIndex + i]
-                end
-
-                redis.call('HSET', KEYS[1], unpack(fieldValues))
+            for i = 1, tonumber(fieldValuesSize), 1 do
+                fieldValues[i] = ARGV[fieldValuesSizeIndex + i]
             end
+
+            redis.call('HSET', KEYS[1], unpack(fieldValues))
+        end
         """.trimIndent()
 }
 
@@ -117,24 +117,25 @@ internal suspend inline fun KeyValueClient.acquireWorkflowLock(
     workflowClassName: String,
     initialContext: Map<String, String>,
 ): Long {
-    val result = eval<Long>(
-        LuaScripts::acquireWorkflowLock.name,
-        LuaScripts.acquireWorkflowLock,
-        // keys
-        listOf(
-            workflowKey, // KEYS[1]
-            workflowLocksKey, // KEYS[2]
-            workflowWorkersKey, // KEYS[3]
-        ),
-        // arguments
-        workflowId.value, // ARGV[1]
-        workerId, // ARGV[2]
-        ((initialContext.size + 1) * 2).toString(), // ARGV[3]
-        // workflow context
-        workflowClassNameFieldKey,
-        workflowClassName,
-        *initialContext.flatMap { listOf(it.key, it.value) }.toTypedArray()
-    )
+    val result =
+        eval<Long>(
+            LuaScripts::acquireWorkflowLock.name,
+            LuaScripts.acquireWorkflowLock,
+            // keys
+            listOf(
+                workflowKey, // KEYS[1]
+                workflowLocksKey, // KEYS[2]
+                workflowWorkersKey, // KEYS[3]
+            ),
+            // arguments
+            workflowId.value, // ARGV[1]
+            workerId, // ARGV[2]
+            ((initialContext.size + 1) * 2).toString(), // ARGV[3]
+            // workflow context
+            workflowClassNameFieldKey,
+            workflowClassName,
+            *initialContext.flatMap { listOf(it.key, it.value) }.toTypedArray(),
+        )
 
     return result
 }
@@ -174,6 +175,6 @@ internal suspend inline fun KeyValueClient.hSetIfKeyExistsScript(
         ),
         // arguments
         (fieldValues.size * 2).toString(), // ARGV[1]
-        *fieldValues.flatMap { listOf(it.first, it.second) }.toTypedArray()
+        *fieldValues.flatMap { listOf(it.first, it.second) }.toTypedArray(),
     )
 }

@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.plugin.serialization)
+    alias(libs.plugins.kotlinter)
 }
 
 group = "ru.killwolfvlad"
@@ -29,6 +30,10 @@ dependencies {
     testImplementation(libs.bundles.mockk)
 
     testImplementation(libs.bundles.logback)
+}
+
+tasks.check {
+    dependsOn("installKotlinterPrePushHook")
 }
 
 tasks.withType<Test>().configureEach {

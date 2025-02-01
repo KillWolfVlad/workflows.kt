@@ -17,11 +17,12 @@ suspend fun delayActivity(
     duration: Duration,
 ) = withActivity(
     activityId,
-    activityContextKeys = listOf(UNTIL_DATE_ACTIVITY_CONTEXT_KEY)
+    activityContextKeys = listOf(UNTIL_DATE_ACTIVITY_CONTEXT_KEY),
 ) { _, activityContextMap ->
-    var untilDate = activityContextMap[UNTIL_DATE_ACTIVITY_CONTEXT_KEY]?.let {
-        Instant.parse(it)
-    }
+    var untilDate =
+        activityContextMap[UNTIL_DATE_ACTIVITY_CONTEXT_KEY]?.let {
+            Instant.parse(it)
+        }
 
     if (untilDate == null) {
         untilDate = Clock.System.now() + duration

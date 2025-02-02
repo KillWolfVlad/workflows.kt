@@ -5,8 +5,7 @@ import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 
-@ConsistentCopyVisibility
-data class ActivityCoroutineContext internal constructor(
+data class ActivityCoroutineContext(
     val activityId: String,
 ) : AbstractCoroutineContextElement(ActivityCoroutineContext) {
     companion object Key : CoroutineContext.Key<ActivityCoroutineContext>

@@ -1,7 +1,6 @@
 [versions]
 kotlin = "2.1.10" # https://github.com/JetBrains/kotlin
 kotlinter = "5.0.1" # https://github.com/jeremymailen/kotlinter-gradle
-ktor = "3.0.3" # https://github.com/ktorio/ktor
 kotlinx-coroutines = "1.10.1" # https://github.com/Kotlin/kotlinx.coroutines
 kotlinx-datetime = "0.6.1" # https://github.com/Kotlin/kotlinx-datetime
 kotlinx-serialization = "1.8.0" # https://github.com/Kotlin/kotlinx.serialization
@@ -18,9 +17,6 @@ kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization"
 kotlinter = { id = "org.jmailen.kotlinter", version.ref = "kotlinter" }
 
 [libraries]
-# ktor
-ktor-utils = { module = "io.ktor:ktor-utils", version.ref = "ktor" }
-
 # kotlinx
 kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
@@ -46,20 +42,16 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 
 [bundles]
 
-ktor = [
-  "ktor-utils"
-]
-
 kotlinx = [
   "kotlinx-coroutines",
   "kotlinx-datetime",
-  "kotlinx-serialization-json"
+  "kotlinx-serialization-json",
 ]
 
 redis = [
   "rethis",
   "lettuce",
-  "kotlinx-coroutines-reactive"
+  "kotlinx-coroutines-reactive",
 ]
 
 kotest = [
@@ -68,13 +60,13 @@ kotest = [
 ]
 
 jedis = [
-  "jedis"
+  "jedis",
 ]
 
 mockk = [
-  "mockk"
+  "mockk",
 ]
 
 logback = [
-  "logback-classic"
+  "logback-classic",
 ]

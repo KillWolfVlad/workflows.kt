@@ -1,6 +1,5 @@
 package ru.killwolfvlad.workflows.core.internal
 
-import io.ktor.util.collections.ConcurrentMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +23,7 @@ import ru.killwolfvlad.workflows.core.internal.enums.WorkflowSignal
 import ru.killwolfvlad.workflows.core.internal.extensions.workflowClassName
 import ru.killwolfvlad.workflows.core.types.WorkflowId
 import ru.killwolfvlad.workflows.core.types.workflowKey
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 
 @OptIn(WorkflowsPerformance::class)
@@ -41,7 +41,7 @@ internal class WorkflowsRunner(
             rootJob + Dispatchers.IO + CoroutineName(WorkflowsRunner::class.simpleName + "Coroutine"),
         )
 
-    private val workflowJobs = ConcurrentMap<WorkflowId, Job>()
+    private val workflowJobs = ConcurrentHashMap<WorkflowId, Job>()
 
     suspend fun run(
         workflowId: WorkflowId,
@@ -88,7 +88,7 @@ internal class WorkflowsRunner(
         workflowId: WorkflowId,
         workflowClass: KClass<out Workflow>,
     ) {
-        workflowJobs[workflowId] =
+        val job =
             coroutineScope
                 .launch(
                     WorkflowCoroutineContext(workflowId, workflowContext, activityContext, keyValueClient),
@@ -134,8 +134,12 @@ internal class WorkflowsRunner(
                     it.invokeOnCompletion {
                         workflowJobs.remove(workflowId)
                     }
-
-                    it.start()
                 }
+
+        val actualJob = workflowJobs.putIfAbsent(workflowId, job)
+
+        if (actualJob == null) {
+            job.start()
+        }
     }
 }

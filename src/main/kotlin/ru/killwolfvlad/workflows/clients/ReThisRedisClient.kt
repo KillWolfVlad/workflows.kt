@@ -13,9 +13,9 @@ import eu.vendeli.rethis.commands.subscribe
 import eu.vendeli.rethis.types.core.RMap
 import eu.vendeli.rethis.types.core.RType
 import eu.vendeli.rethis.utils.unwrap
-import io.ktor.util.collections.ConcurrentMap
 import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
+import java.util.concurrent.ConcurrentHashMap
 
 @OptIn(WorkflowsPerformance::class)
 class ReThisRedisClient(
@@ -108,7 +108,7 @@ class ReThisRedisClient(
     // endregion
 }
 
-private val scriptsSha1Map = ConcurrentMap<String, String>()
+private val scriptsSha1Map = ConcurrentHashMap<String, String>()
 
 private suspend inline fun ReThis.fastEval(
     scriptId: String,

@@ -1,6 +1,5 @@
 package ru.killwolfvlad.workflows.clients
 
-import io.ktor.util.collections.ConcurrentMap
 import io.lettuce.core.ExperimentalLettuceCoroutinesApi
 import io.lettuce.core.RedisClient
 import io.lettuce.core.ScriptOutputType
@@ -20,6 +19,7 @@ import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.withContext
 import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
+import java.util.concurrent.ConcurrentHashMap
 
 // TODO: delete Lettuce client
 @OptIn(WorkflowsPerformance::class, ExperimentalLettuceCoroutinesApi::class)
@@ -129,7 +129,7 @@ class LettuceRedisClient(
     // endregion
 }
 
-private val scriptsSha1Map = ConcurrentMap<String, String>()
+private val scriptsSha1Map = ConcurrentHashMap<String, String>()
 
 @ExperimentalLettuceCoroutinesApi
 private suspend inline fun <reified K : Any, reified V : Any, reified T> RedisCoroutinesCommands<K, V>.fastEval(

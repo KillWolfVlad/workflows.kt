@@ -14,8 +14,6 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.bundles.ktor)
-
     implementation(libs.bundles.kotlinx)
 
     api(libs.bundles.redis)

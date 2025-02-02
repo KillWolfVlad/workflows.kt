@@ -12,12 +12,11 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 
 @OptIn(WorkflowsPerformance::class)
-@ConsistentCopyVisibility
-data class WorkflowCoroutineContext internal constructor(
+data class WorkflowCoroutineContext(
     val workflowId: WorkflowId,
     val workflowContext: WorkflowContext,
     val activityContext: ActivityContext,
-    internal val keyValueClient: KeyValueClient,
+    val keyValueClient: KeyValueClient,
 ) : AbstractCoroutineContextElement(WorkflowCoroutineContext) {
     companion object Key : CoroutineContext.Key<WorkflowCoroutineContext>
 }
@@ -37,7 +36,7 @@ suspend inline fun CoroutineContext.getActivityContext(): ActivityContext =
         ?: throw NullPointerException("${WorkflowCoroutineContext::class.simpleName} must be in coroutineContext!")
 
 @OptIn(WorkflowsPerformance::class)
-internal suspend inline fun CoroutineContext.getKeyValueClient(): KeyValueClient =
+suspend inline fun CoroutineContext.getKeyValueClient(): KeyValueClient =
     coroutineContext[WorkflowCoroutineContext]?.keyValueClient
         ?: throw NullPointerException("${WorkflowCoroutineContext::class.simpleName} must be in coroutineContext!")
 

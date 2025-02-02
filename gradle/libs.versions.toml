@@ -1,19 +1,34 @@
 [versions]
+# plugins
 kotlin = "2.1.10" # https://github.com/JetBrains/kotlin
+detekt = "1.23.7" # https://github.com/detekt/detekt
 kotlinter = "5.0.1" # https://github.com/jeremymailen/kotlinter-gradle
+
+# kotlinx
 kotlinx-coroutines = "1.10.1" # https://github.com/Kotlin/kotlinx.coroutines
 kotlinx-datetime = "0.6.1" # https://github.com/Kotlin/kotlinx-datetime
 kotlinx-serialization = "1.8.0" # https://github.com/Kotlin/kotlinx.serialization
+
+# redis
 rethis = "0.2.7" # https://github.com/vendelieu/re.this
 lettuce = "6.5.3.RELEASE" # https://github.com/redis/lettuce
+
+# kotest
 kotest = "6.0.0.M1" # https://github.com/kotest/kotest
+
+# jedis
 jedis = "5.2.0" # https://github.com/redis/jedis
+
+# mockk
 mockk = "1.13.16" # https://github.com/mockk/mockk
+
+# logback
 logback = "1.5.16" # https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kotlinter = { id = "org.jmailen.kotlinter", version.ref = "kotlinter" }
 
 [libraries]

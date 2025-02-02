@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.plugin.serialization)
+    alias(libs.plugins.detekt)
     alias(libs.plugins.kotlinter)
 }
 
@@ -45,4 +46,9 @@ tasks.named<KotlinCompilationTask<*>>("compileTestKotlin").configure {
 
 kotlin {
     jvmToolchain(21)
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config.from(files("$rootDir/detekt.yaml"))
 }

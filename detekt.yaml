@@ -1,0 +1,29 @@
+complexity:
+  # TODO: add only one class to excludes!
+  LongParameterList:
+    active: false
+
+exceptions:
+  # TODO: add only one class to excludes!
+  TooGenericExceptionCaught:
+    active: false
+
+performance:
+  # TODO: fix it!
+  SpreadOperator:
+    active: false
+
+style:
+  # TODO: fix all todo!
+  ForbiddenComment:
+    active: false
+  MaxLineLength:
+    active: true
+    maxLineLength: 140
+    excludePackageStatements: true
+    excludeImportStatements: true
+    excludeCommentStatements: false
+    excludeRawStrings: true
+  # TODO: fix it!
+  ThrowsCount:
+    active: false

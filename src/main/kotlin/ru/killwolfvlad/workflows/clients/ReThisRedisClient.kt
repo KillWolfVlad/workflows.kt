@@ -17,6 +17,7 @@ import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import java.util.concurrent.ConcurrentHashMap
 
+// TODO: add retries here!
 @OptIn(WorkflowsPerformance::class)
 class ReThisRedisClient(
     private val client: ReThis,

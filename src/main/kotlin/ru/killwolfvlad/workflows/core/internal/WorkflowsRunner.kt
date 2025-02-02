@@ -1,6 +1,5 @@
 package ru.killwolfvlad.workflows.core.internal
 
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -16,6 +15,7 @@ import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.interfaces.Workflow
 import ru.killwolfvlad.workflows.core.interfaces.WorkflowsClassManager
 import ru.killwolfvlad.workflows.core.interfaces.WorkflowsExceptionHandler
+import ru.killwolfvlad.workflows.core.interfaces.runSafe
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_CLASS_NAME_FIELD_KEY
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_LOCKS_KEY
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_WORKERS_KEY
@@ -94,28 +94,23 @@ internal class WorkflowsRunner(
                     WorkflowCoroutineContext(workflowId, workflowContext, activityContext, keyValueClient),
                     CoroutineStart.LAZY,
                 ) workflow@{
-                    try {
-                        val signal =
-                            keyValueClient.hGet(workflowId.workflowKey, WorkflowSignal.FIELD_KEY)?.let {
-                                WorkflowSignal.valueOf(it)
+                    workflowsExceptionHandler
+                        .runSafe {
+                            val signal =
+                                keyValueClient.hGet(workflowId.workflowKey, WorkflowSignal.FIELD_KEY)?.let {
+                                    WorkflowSignal.valueOf(it)
+                                }
+
+                            if (signal != WorkflowSignal.CANCEL) {
+                                val workflow = workflowsClassManager.getInstance(workflowClass)
+
+                                workflow.execute()
                             }
-
-                        if (signal != WorkflowSignal.CANCEL) {
-                            val workflow = workflowsClassManager.getInstance(workflowClass)
-
-                            workflow.execute()
-                        }
-                    } catch (_: CancellationException) {
-                        // skip cancellation exception
-                    } catch (exception: Exception) {
-                        runCatching {
-                            workflowsExceptionHandler.handle(exception)
+                        }.onFailure {
+                            return@workflow
                         }
 
-                        return@workflow
-                    }
-
-                    try {
+                    workflowsExceptionHandler.runSafe {
                         keyValueClient.deleteWorkflow(
                             // keys
                             workflowKey = workflowId.workflowKey,
@@ -123,12 +118,6 @@ internal class WorkflowsRunner(
                             // arguments
                             workflowId = workflowId,
                         )
-                    } catch (_: CancellationException) {
-                        // skip cancellation exception
-                    } catch (exception: Exception) {
-                        runCatching {
-                            workflowsExceptionHandler.handle(exception)
-                        }
                     }
                 }.also {
                     it.invokeOnCompletion {

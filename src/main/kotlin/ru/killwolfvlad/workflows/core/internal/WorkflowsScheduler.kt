@@ -1,6 +1,5 @@
 package ru.killwolfvlad.workflows.core.internal
 
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +12,7 @@ import ru.killwolfvlad.workflows.core.WorkflowsConfig
 import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.interfaces.WorkflowsExceptionHandler
+import ru.killwolfvlad.workflows.core.interfaces.runSafe
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_CLASS_NAME_FIELD_KEY
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_LOCKS_KEY
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_WORKERS_KEY
@@ -43,14 +43,8 @@ internal class WorkflowsScheduler(
                 delay(config.fetchInterval)
 
                 while (true) {
-                    try {
+                    workflowsExceptionHandler.runSafe {
                         fetchWorkflows()
-                    } catch (_: CancellationException) {
-                        // skip cancellation exception
-                    } catch (exception: Exception) {
-                        runCatching {
-                            workflowsExceptionHandler.handle(exception)
-                        }
                     }
                 }
             }

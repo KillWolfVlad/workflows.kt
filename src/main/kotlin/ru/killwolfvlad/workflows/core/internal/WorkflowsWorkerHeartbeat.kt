@@ -1,6 +1,5 @@
 package ru.killwolfvlad.workflows.core.internal
 
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -11,6 +10,7 @@ import ru.killwolfvlad.workflows.core.WorkflowsConfig
 import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.interfaces.WorkflowsExceptionHandler
+import ru.killwolfvlad.workflows.core.interfaces.runSafe
 import ru.killwolfvlad.workflows.core.internal.consts.WORKFLOW_WORKERS_KEY
 
 @OptIn(WorkflowsPerformance::class)
@@ -32,14 +32,8 @@ class WorkflowsWorkerHeartbeat(
             while (true) {
                 delay(config.heartbeatInterval)
 
-                try {
+                workflowsExceptionHandler.runSafe {
                     heartbeat()
-                } catch (_: CancellationException) {
-                    // skip cancellation exception
-                } catch (exception: Exception) {
-                    runCatching {
-                        workflowsExceptionHandler.handle(exception)
-                    }
                 }
             }
         }

@@ -1,10 +1,10 @@
 package ru.killwolfvlad.workflows.core.internal
 
-import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import ru.killwolfvlad.workflows.core.interfaces.WorkflowsExceptionHandler
+import ru.killwolfvlad.workflows.core.interfaces.runSafe
 import ru.killwolfvlad.workflows.core.internal.dtos.WorkflowSignalMessageDto
 import ru.killwolfvlad.workflows.core.internal.enums.WorkflowSignal
 import ru.killwolfvlad.workflows.core.types.WorkflowId
@@ -31,19 +31,13 @@ internal class WorkflowsSignalsBroker(
 
     suspend fun init() {
         keyValueClient.subscribe(WorkflowSignal.CHANNEL) { messageString ->
-            try {
+            workflowsExceptionHandler.runSafe {
                 val message = json.decodeFromString<WorkflowSignalMessageDto>(messageString)
 
                 when (message.signal) {
                     WorkflowSignal.CANCEL -> {
                         workflowsRunner.cancel(message.workflowId)
                     }
-                }
-            } catch (_: CancellationException) {
-                // skip cancellation exception
-            } catch (exception: Exception) {
-                runCatching {
-                    workflowsExceptionHandler.handle(exception)
                 }
             }
         }

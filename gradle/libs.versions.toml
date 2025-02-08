@@ -1,0 +1,89 @@
+[versions]
+# plugins
+kotlin = "2.1.10" # https://github.com/JetBrains/kotlin
+detekt = "1.23.7" # https://github.com/detekt/detekt
+kotlinter = "5.0.1" # https://github.com/jeremymailen/kotlinter-gradle
+
+# kotlinx
+kotlinx-coroutines = "1.10.1" # https://github.com/Kotlin/kotlinx.coroutines
+kotlinx-datetime = "0.6.1" # https://github.com/Kotlin/kotlinx-datetime
+kotlinx-serialization = "1.8.0" # https://github.com/Kotlin/kotlinx.serialization
+
+# redis
+rethis = "0.2.8" # https://github.com/vendelieu/re.this
+lettuce = "6.5.3.RELEASE" # https://github.com/redis/lettuce
+
+# kotest
+kotest = "6.0.0.M1" # https://github.com/kotest/kotest
+
+# jedis
+jedis = "5.2.0" # https://github.com/redis/jedis
+
+# mockk
+mockk = "1.13.16" # https://github.com/mockk/mockk
+
+# logback
+logback = "1.5.16" # https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+kotlinter = { id = "org.jmailen.kotlinter", version.ref = "kotlinter" }
+
+[libraries]
+# kotlinx
+kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+kotlinx-serialization-properties = { module = "org.jetbrains.kotlinx:kotlinx-serialization-properties", version.ref = "kotlinx-serialization" }
+
+# redis
+rethis = { module = "eu.vendeli:rethis", version.ref = "rethis" }
+lettuce = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
+kotlinx-coroutines-reactive = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactive", version.ref = "kotlinx-coroutines" }
+
+# kotest
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+
+# jedis
+jedis = { module = "redis.clients:jedis", version.ref = "jedis" }
+
+# mockk
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+
+# logback
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+
+[bundles]
+
+kotlinx = [
+  "kotlinx-coroutines",
+  "kotlinx-datetime",
+  "kotlinx-serialization-json",
+  "kotlinx-serialization-properties",
+]
+
+redis = [
+  "rethis",
+  "lettuce",
+  "kotlinx-coroutines-reactive",
+]
+
+kotest = [
+  "kotest-runner-junit5",
+  "kotest-assertions-core",
+]
+
+jedis = [
+  "jedis",
+]
+
+mockk = [
+  "mockk",
+]
+
+logback = [
+  "logback-classic",
+]

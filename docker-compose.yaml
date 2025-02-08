@@ -1,0 +1,9 @@
+name: "workflows"
+
+services:
+  ##############################################################################
+  redis_standalone:
+    image: redis:7.4.2-bookworm
+    restart: "unless-stopped"
+    ports:
+      - "6379:6379"

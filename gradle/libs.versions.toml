@@ -14,7 +14,7 @@ rethis = "0.2.8" # https://github.com/vendelieu/re.this
 lettuce = "6.5.3.RELEASE" # https://github.com/redis/lettuce
 
 # kotest
-kotest = "6.0.0.M1" # https://github.com/kotest/kotest
+kotest = "6.0.0.M2" # https://github.com/kotest/kotest
 
 # jedis
 jedis = "5.2.0" # https://github.com/redis/jedis

@@ -1,6 +1,8 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 plugins {
+    `maven-publish`
+
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.plugin.serialization)
     alias(libs.plugins.detekt)
@@ -8,7 +10,7 @@ plugins {
 }
 
 group = "ru.killwolfvlad"
-version = "1.0-SNAPSHOT"
+version = providers.gradleProperty("version").getOrElse("1.0-SNAPSHOT")
 
 repositories {
     mavenCentral()
@@ -46,6 +48,31 @@ tasks.named<KotlinCompilationTask<*>>("compileTestKotlin").configure {
 
 kotlin {
     jvmToolchain(21)
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/KillWolfVlad/workflows.kt")
+
+            credentials {
+                username = providers.gradleProperty("gpr.user").orNull
+                password = providers.gradleProperty("gpr.key").orNull
+            }
+        }
+    }
+
+    publications {
+        register<MavenPublication>("gpr") {
+            from(components["java"])
+        }
+    }
 }
 
 detekt {

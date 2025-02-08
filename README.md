@@ -14,6 +14,46 @@ Embedded Workflows As Code engine for Kotlin powered by Coroutines and Redis-lik
 - Durable timers for notifications or any other delayed jobs
 - Run 100K+ workflows simultaneously, see [loadTest](./loadTest) for more info
 
+## Install
+
+See also [official docs](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry#using-a-published-package) about using GitHub Packages.
+
+`build.gradle.kts`
+
+```kotlin
+plugins {
+    id("net.saliman.properties") version "1.5.2"
+}
+
+repositories {
+    mavenCentral()
+
+    maven {
+        url = uri("https://maven.pkg.github.com/KillWolfVlad/workflows.kt")
+
+        credentials {
+            username = project.findProperty("gpr.user") as String?
+            password = project.findProperty("gpr.key") as String?
+        }
+    }
+}
+
+dependencies {
+    implementation("ru.killwolfvlad:workflows:version")
+}
+```
+
+`gradle-local.properties`
+
+```properties
+gpr.user=xxx
+gpr.key=xxx
+```
+
+You can find latest version in [GitHub Packages](https://github.com/KillWolfVlad/workflows.kt/packages/2397397).
+
+> WARNING! Don' forget add `gradle-local.properties` to `.gitignore`
+
 ## Usage
 
 See [exampleApp](./exampleApp) for usage example.

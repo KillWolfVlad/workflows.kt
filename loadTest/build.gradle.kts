@@ -31,6 +31,20 @@ tasks.register<JavaExec>("Redis Standalone - 100K - Lettuce") {
         )
 }
 
+tasks.register<JavaExec>("Redis Standalone - 1M - Lettuce") {
+    group = "load test"
+
+    mainClass.set("ru.killwolfvlad.workflows.loadTest.LoadTestKt")
+    classpath = sourceSets.main.get().runtimeClasspath
+
+    jvmArgs =
+        listOf(
+            "-Dsize=1000000",
+            "-DKeyValueClient=LettuceRedisClient",
+            "-XX:StartFlightRecording:filename=Redis Standalone - 1M - Lettuce.jfr",
+        )
+}
+
 tasks.register<JavaExec>("Redis Standalone - 100K - ReThis") {
     group = "load test"
 
@@ -42,6 +56,20 @@ tasks.register<JavaExec>("Redis Standalone - 100K - ReThis") {
             "-Dsize=100000",
             "-DKeyValueClient=ReThisRedisClient",
             "-XX:StartFlightRecording:filename=Redis Standalone - 100K - ReThis.jfr",
+        )
+}
+
+tasks.register<JavaExec>("Redis Standalone - 1M - ReThis") {
+    group = "load test"
+
+    mainClass.set("ru.killwolfvlad.workflows.loadTest.LoadTestKt")
+    classpath = sourceSets.main.get().runtimeClasspath
+
+    jvmArgs =
+        listOf(
+            "-Dsize=1000000",
+            "-DKeyValueClient=ReThisRedisClient",
+            "-XX:StartFlightRecording:filename=Redis Standalone - 1M - ReThis.jfr",
         )
 }
 

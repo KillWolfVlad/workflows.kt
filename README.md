@@ -62,14 +62,18 @@ See [exampleApp](./exampleApp) for usage example.
 
 - Java v21+ LTS
 
-## Official supported databases and clients[^1]
+## Official supported databases and clients
 
 | DB                       | Client                                       |
 | ------------------------ | -------------------------------------------- |
-| Redis Standalone v7.4.2+ | [LettuceRedisClient][LettuceRedisClient][^2] |
-| Redis Standalone v7.4.2+ | [ReThisRedisClient][ReThisRedisClient][^3]   |
+| Redis Standalone v7.4.2+ | [LettuceRedisClient][LettuceRedisClient][^1] |
+| Redis Standalone v7.4.2+ | [ReThisRedisClient][ReThisRedisClient][^2]   |
 
 > We recommend use [ReThisRedisClient][ReThisRedisClient] in most cases
+
+### Custom clients
+
+Implement [KeyValueClient][KeyValueClient] to provide support for your DB using your library.
 
 ## Maintainers
 
@@ -84,6 +88,5 @@ This repository is released under version 2.0 of the
 [LettuceRedisClient]: ./src/main/kotlin/ru/killwolfvlad/workflows/clients/LettuceRedisClient.kt
 [ReThisRedisClient]: ./src/main/kotlin/ru/killwolfvlad/workflows/clients/ReThisRedisClient.kt
 
-[^1]: Implement [KeyValueClient][KeyValueClient] to provide support for your db using your library
-[^2]: To use this client you must install [Lettuce for Kotlin API](https://redis.github.io/lettuce/user-guide/kotlin-api/) v6.5.3.RELEASE+
-[^3]: To use this client you must install [re.this](https://github.com/vendelieu/re.this) v0.2.8+
+[^1]: To use this client you must install [Lettuce for Kotlin API](https://redis.github.io/lettuce/user-guide/kotlin-api/) v6.5.3.RELEASE+
+[^2]: To use this client you must install [re.this](https://github.com/vendelieu/re.this) v0.2.8+

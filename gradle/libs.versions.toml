@@ -6,7 +6,7 @@ kotlinter = "5.0.1" # https://github.com/jeremymailen/kotlinter-gradle
 
 # kotlinx
 kotlinx-coroutines = "1.10.1" # https://github.com/Kotlin/kotlinx.coroutines
-kotlinx-datetime = "0.6.1" # https://github.com/Kotlin/kotlinx-datetime
+kotlinx-datetime = "0.6.2" # https://github.com/Kotlin/kotlinx-datetime
 kotlinx-serialization = "1.8.0" # https://github.com/Kotlin/kotlinx.serialization
 
 # redis

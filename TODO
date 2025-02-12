@@ -1,0 +1,3 @@
+- Добить заметку про Steteful Sets
+- Сделать activityId необязательный
+- Перегрузки withActivity неудобны

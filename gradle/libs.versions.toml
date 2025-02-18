@@ -10,7 +10,7 @@ kotlinx-datetime = "0.6.1" # https://github.com/Kotlin/kotlinx-datetime
 kotlinx-serialization = "1.8.0" # https://github.com/Kotlin/kotlinx.serialization
 
 # redis
-rethis = "0.2.8" # https://github.com/vendelieu/re.this
+rethis = "0.2.9" # https://github.com/vendelieu/re.this
 lettuce = "6.5.3.RELEASE" # https://github.com/redis/lettuce
 
 # kotest

@@ -10,9 +10,9 @@ import eu.vendeli.rethis.commands.hSet
 import eu.vendeli.rethis.commands.publish
 import eu.vendeli.rethis.commands.scriptLoad
 import eu.vendeli.rethis.commands.subscribe
-import eu.vendeli.rethis.types.core.RMap
-import eu.vendeli.rethis.types.core.RType
+import eu.vendeli.rethis.types.common.RType
 import eu.vendeli.rethis.utils.unwrap
+import eu.vendeli.rethis.utils.unwrapMap
 import ru.killwolfvlad.workflows.core.annotations.WorkflowsPerformance
 import ru.killwolfvlad.workflows.core.interfaces.KeyValueClient
 import java.util.concurrent.ConcurrentHashMap
@@ -76,7 +76,7 @@ class ReThisRedisClient(
                     hGet(it.first, it.second)
                 }
             }.map {
-                it.unwrap(String::class)
+                it.unwrap<String>()
             }
 
     @Suppress("UNCHECKED_CAST")
@@ -87,10 +87,7 @@ class ReThisRedisClient(
                     hGetAll(it)
                 }
             }.map {
-                (it.unwrap(RType::class) as RMap)
-                    .value
-                    .map { it.key.unwrap(String::class)!! to it.value?.unwrap(String::class)!! }
-                    .toMap()
+                it.unwrapMap<String, String>() as Map<String, String>
             }
 
     //endregion

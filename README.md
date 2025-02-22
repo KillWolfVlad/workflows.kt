@@ -88,5 +88,5 @@ This repository is released under version 2.0 of the
 [LettuceRedisClient]: ./src/main/kotlin/ru/killwolfvlad/workflows/clients/LettuceRedisClient.kt
 [ReThisRedisClient]: ./src/main/kotlin/ru/killwolfvlad/workflows/clients/ReThisRedisClient.kt
 
-[^1]: To use this client you must install [Lettuce for Kotlin API](https://redis.github.io/lettuce/user-guide/kotlin-api/) v6.5.3.RELEASE+
-[^2]: To use this client you must install [re.this](https://github.com/vendelieu/re.this) v0.2.8+
+[^1]: To use this client you must install [Lettuce for Kotlin API](https://redis.github.io/lettuce/user-guide/kotlin-api/) v6.5.4.RELEASE+
+[^2]: To use this client you must install [re.this](https://github.com/vendelieu/re.this) v0.2.9+

@@ -5,7 +5,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ru.killwolfvlad.workflows.core.ActivityContext
 import ru.killwolfvlad.workflows.core.WorkflowContext
 import ru.killwolfvlad.workflows.core.WorkflowsConfig
@@ -114,14 +116,16 @@ internal class WorkflowsRunner(
                             return@workflow
                         }
 
-                    workflowsExceptionHandler.runSafe {
-                        keyValueClient.deleteWorkflow(
-                            // keys
-                            workflowKey = workflowId.workflowKey,
-                            workflowLocksKey = WORKFLOW_LOCKS_KEY,
-                            // arguments
-                            workflowId = workflowId,
-                        )
+                    withContext(NonCancellable) {
+                        workflowsExceptionHandler.runSafe {
+                            keyValueClient.deleteWorkflow(
+                                // keys
+                                workflowKey = workflowId.workflowKey,
+                                workflowLocksKey = WORKFLOW_LOCKS_KEY,
+                                // arguments
+                                workflowId = workflowId,
+                            )
+                        }
                     }
                 }.also {
                     it.invokeOnCompletion {

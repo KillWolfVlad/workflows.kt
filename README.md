@@ -58,6 +58,10 @@ You can find latest version in [GitHub Packages](https://github.com/KillWolfVlad
 
 See [exampleApp](./exampleApp) for usage example.
 
+## Deploy
+
+We recommend use `HOSTNAME` environment variable for Worker ID and deploy application to [Stateful Sets](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/).
+
 ## Supported platforms
 
 - Java v21+ LTS

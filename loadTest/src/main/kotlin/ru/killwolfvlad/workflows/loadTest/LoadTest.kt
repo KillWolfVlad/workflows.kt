@@ -108,7 +108,7 @@ private suspend fun startWorkflows(
                     (1..size).map { id ->
                         async {
                             workflowsWorker.executeLoadTestWorkflow(
-                                LoadTestWorkflowContext(
+                                LoadTestWorkflow.Context(
                                     id = "id$id",
                                     payload = "payload$id",
                                 ),

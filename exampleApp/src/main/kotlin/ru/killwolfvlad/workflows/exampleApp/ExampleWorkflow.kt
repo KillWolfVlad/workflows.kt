@@ -3,32 +3,46 @@ package ru.killwolfvlad.workflows.exampleApp
 import kotlinx.serialization.Serializable
 import ru.killwolfvlad.workflows.activities.delayActivity
 import ru.killwolfvlad.workflows.core.WorkflowsWorker
-import ru.killwolfvlad.workflows.core.execute
 import ru.killwolfvlad.workflows.core.interfaces.Workflow
 import ru.killwolfvlad.workflows.core.types.WorkflowId
 import ru.killwolfvlad.workflows.core.withActivity
-import kotlin.time.Duration.Companion.minutes
-
-@Serializable
-data class ExampleWorkflowContext(
-    val chatId: Long,
-    val messageId: Long,
-)
+import ru.killwolfvlad.workflows.core.withWorkflowContext
+import kotlin.time.Duration
 
 class ExampleWorkflow : Workflow {
+    @Serializable
+    data class DelayContext(
+        val duration: Duration,
+    )
+
+    @Serializable
+    data class DeleteMessageContext(
+        val chatId: Long,
+        val messageId: Long,
+    )
+
     companion object {
-        fun getId(context: ExampleWorkflowContext): WorkflowId = WorkflowId("exampleWorkflow:${context.chatId}:${context.messageId}")
+        fun getId(deleteMessageContext: DeleteMessageContext): WorkflowId =
+            WorkflowId("exampleWorkflow:${deleteMessageContext.chatId}:${deleteMessageContext.messageId}")
     }
 
     override suspend fun execute() {
-        delayActivity("delay", 1.minutes)
+        withWorkflowContext<DelayContext> { delayContext ->
+            delayActivity("delay", delayContext.duration)
+        }
 
-        withActivity<ExampleWorkflowContext, Unit>("deleteMessage") { context ->
+        withActivity<DeleteMessageContext, Unit>("deleteMessage") { deleteMessageContext ->
             // delete message
-            println("message ${context.messageId} in chat ${context.chatId} deleted!")
+            println("message ${deleteMessageContext.messageId} in chat ${deleteMessageContext.chatId} deleted!")
         }
     }
 }
 
-suspend inline fun WorkflowsWorker.executeExampleWorkflow(context: ExampleWorkflowContext) =
-    execute<ExampleWorkflow, ExampleWorkflowContext>(ExampleWorkflow.getId(context), context)
+suspend inline fun WorkflowsWorker.executeExampleWorkflow(
+    delayContext: ExampleWorkflow.DelayContext,
+    deleteMessageContext: ExampleWorkflow.DeleteMessageContext,
+) = execute<ExampleWorkflow, ExampleWorkflow.DelayContext, ExampleWorkflow.DeleteMessageContext>(
+    ExampleWorkflow.getId(deleteMessageContext),
+    delayContext,
+    deleteMessageContext,
+)

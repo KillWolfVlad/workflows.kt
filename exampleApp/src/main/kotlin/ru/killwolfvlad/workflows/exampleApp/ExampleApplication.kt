@@ -36,7 +36,10 @@ suspend fun main() {
 
     workflowsWorker.init()
 
-    workflowsWorker.executeExampleWorkflow(ExampleWorkflowContext(chatId = -10L, messageId = 10))
+    workflowsWorker.executeExampleWorkflow(
+        ExampleWorkflow.DelayContext(duration = 1.minutes),
+        ExampleWorkflow.DeleteMessageContext(chatId = -10L, messageId = 10),
+    )
 
     rootJob.join() // to prevent exit from application, no need e.g. in ktor applications
 }

@@ -15,7 +15,7 @@ import ru.killwolfvlad.workflows.core.internal.WorkflowsWorkerHeartbeat
 import ru.killwolfvlad.workflows.core.types.WorkflowId
 import kotlin.reflect.KClass
 
-@OptIn(WorkflowsPerformance::class)
+@OptIn(WorkflowsPerformance::class, ExperimentalSerializationApi::class)
 class WorkflowsWorker(
     config: WorkflowsConfig,
     keyValueClient: KeyValueClient,
@@ -55,6 +55,22 @@ class WorkflowsWorker(
         workflowClass: KClass<out Workflow>,
     ) = workflowsRunner.run(workflowId, initialContext, workflowClass)
 
+    suspend inline fun <reified T : Workflow> execute(
+        workflowId: WorkflowId,
+        initialContext: Map<String, String>,
+    ) = execute(workflowId, initialContext, T::class)
+
+    suspend inline fun <reified TWorkflow : Workflow, reified TInitialContext> execute(
+        workflowId: WorkflowId,
+        initialContext: TInitialContext,
+    ) = execute<TWorkflow>(workflowId, Properties.encodeToStringMap(initialContext))
+
+    suspend inline fun <reified TWorkflow : Workflow, reified TInitialContext1, reified TInitialContext2> execute(
+        workflowId: WorkflowId,
+        initialContext1: TInitialContext1,
+        initialContext2: TInitialContext2,
+    ) = execute<TWorkflow>(workflowId, Properties.encodeToStringMap(initialContext1) + Properties.encodeToStringMap(initialContext2))
+
     suspend fun cancel(workflowId: WorkflowId) = workflowsSignalsBroker.cancel(workflowId)
 
     suspend fun init() {
@@ -63,14 +79,3 @@ class WorkflowsWorker(
         workflowsScheduler.init()
     }
 }
-
-suspend inline fun <reified T : Workflow> WorkflowsWorker.execute(
-    workflowId: WorkflowId,
-    initialContext: Map<String, String>,
-) = execute(workflowId, initialContext, T::class)
-
-@OptIn(ExperimentalSerializationApi::class)
-suspend inline fun <reified TWorkflow : Workflow, reified TInitialContext> WorkflowsWorker.execute(
-    workflowId: WorkflowId,
-    initialContext: TInitialContext,
-) = execute<TWorkflow>(workflowId, Properties.encodeToStringMap(initialContext))
